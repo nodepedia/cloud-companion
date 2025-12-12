@@ -3,10 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ApiKeys from "./pages/admin/ApiKeys";
+import InviteKeys from "./pages/admin/InviteKeys";
 import AdminDroplets from "./pages/admin/AdminDroplets";
 import AdminUsers from "./pages/admin/AdminUsers";
 import UserDashboard from "./pages/user/UserDashboard";
@@ -22,7 +24,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <AuthProvider>
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           
@@ -31,15 +34,17 @@ const App = () => (
           <Route path="/admin/droplets" element={<AdminDroplets />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/api-keys" element={<ApiKeys />} />
+          <Route path="/admin/invite-keys" element={<InviteKeys />} />
           
           {/* User Routes */}
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/dashboard/droplets" element={<UserDroplets />} />
           <Route path="/dashboard/droplets/create" element={<CreateDroplet />} />
           
-          {/* Catch-all */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
