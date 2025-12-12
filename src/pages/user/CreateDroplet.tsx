@@ -25,14 +25,25 @@ import {
   CheckCircle,
   ArrowLeft,
   Loader2,
-  Search
+  Search,
+  AlertTriangle,
+  Lock
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDigitalOcean, DORegion, DOSize, DOImage } from "@/hooks/useDigitalOcean";
 import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface CreateDropletProps {
   role?: "admin" | "user";
+}
+
+interface UserLimits {
+  max_droplets: number;
+  allowed_sizes: string[];
+  auto_destroy_days: number;
 }
 
 // OS Logo mapping based on distribution
@@ -67,7 +78,8 @@ const getOSLogo = (distribution: string | undefined, name: string): string => {
 
 const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   const navigate = useNavigate();
-  const { loading, getRegions, getSizes, getImages, getApps, createDroplet } = useDigitalOcean();
+  const { user } = useAuth();
+  const { loading, getRegions, getSizes, getImages, getApps, createDroplet, listDroplets } = useDigitalOcean();
   const isAdmin = role === "admin";
   const basePath = isAdmin ? "/admin" : "/dashboard";
   
@@ -81,6 +93,11 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   const [sizes, setSizes] = useState<DOSize[]>([]);
   const [images, setImages] = useState<DOImage[]>([]);
   const [apps, setApps] = useState<DOImage[]>([]);
+  
+  // User limits state
+  const [userLimits, setUserLimits] = useState<UserLimits | null>(null);
+  const [currentDropletCount, setCurrentDropletCount] = useState(0);
+  const [limitExceeded, setLimitExceeded] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -95,16 +112,35 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
     const loadData = async () => {
       setIsLoadingData(true);
       try {
-        const [regionsData, sizesData, imagesData, appsData] = await Promise.all([
+        const [regionsData, sizesData, imagesData, appsData, dropletsData] = await Promise.all([
           getRegions(),
           getSizes(),
           getImages(),
           getApps(),
+          listDroplets(),
         ]);
         setRegions(regionsData);
         setSizes(sizesData);
         setImages(imagesData);
         setApps(appsData);
+        setCurrentDropletCount(dropletsData.length);
+        
+        // Fetch user limits
+        if (user) {
+          const { data: limitsData } = await supabase
+            .from('user_limits')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (limitsData) {
+            setUserLimits(limitsData as UserLimits);
+            // Check if limit exceeded
+            if (dropletsData.length >= limitsData.max_droplets) {
+              setLimitExceeded(true);
+            }
+          }
+        }
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
@@ -112,12 +148,24 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
       }
     };
     loadData();
-  }, []);
+  }, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.password || !formData.region || !formData.size || !formData.image) {
+      return;
+    }
+
+    // Check if limit exceeded
+    if (limitExceeded) {
+      toast.error(`Anda sudah mencapai batas maksimal ${userLimits?.max_droplets} droplet`);
+      return;
+    }
+
+    // Check if selected size is allowed
+    if (userLimits && !userLimits.allowed_sizes.includes(formData.size)) {
+      toast.error('Spesifikasi yang dipilih tidak diizinkan. Hubungi admin untuk akses.');
       return;
     }
 
@@ -157,12 +205,18 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
     's-8vcpu-16gb',
   ];
   
-  // Filter only allowed Regular CPU sizes
+  // Filter only allowed Regular CPU sizes (show all, but check if user has access)
   const availableSizes = sizes.filter(s => {
     const isAllowed = allowedSizes.includes(s.slug);
     const isInRegion = !formData.region || s.regions.includes(formData.region);
     return isAllowed && isInRegion;
   });
+
+  // Check if size is allowed for current user
+  const isSizeAllowedForUser = (sizeSlug: string) => {
+    if (!userLimits) return true; // No limits set, allow all
+    return userLimits.allowed_sizes.includes(sizeSlug);
+  };
 
   const regionFlags: Record<string, string> = {
     'nyc1': '🇺🇸', 'nyc2': '🇺🇸', 'nyc3': '🇺🇸',
@@ -286,6 +340,22 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   return (
     <DashboardLayout role={role}>
       <div className="max-w-3xl space-y-6">
+        {/* Limit Warning */}
+        {limitExceeded && (
+          <Card className="border-destructive bg-destructive/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <div>
+                <p className="font-medium text-destructive">Batas Droplet Tercapai</p>
+                <p className="text-sm text-muted-foreground">
+                  Anda sudah memiliki {currentDropletCount} dari {userLimits?.max_droplets} droplet maksimal. 
+                  Hapus droplet yang ada atau hubungi admin untuk meningkatkan limit.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Header */}
         <div>
           <Link 
@@ -397,25 +467,41 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {availableSizes.map((size) => (
-                  <button
-                    key={size.slug}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, size: size.slug })}
-                    className={`relative p-2 rounded-lg border-2 text-left transition-all ${
-                      formData.size === size.slug
-                        ? "border-primary bg-accent"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {formData.size === size.slug && (
-                      <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
-                    )}
-                    <p className="font-semibold text-foreground text-sm">{size.vcpus} vCPU</p>
-                    <p className="text-xs text-muted-foreground">{formatMemory(size.memory)} RAM</p>
-                    <p className="text-xs text-muted-foreground">{size.disk} GB SSD</p>
-                  </button>
-                ))}
+                {availableSizes.map((size) => {
+                  const isAllowed = isSizeAllowedForUser(size.slug);
+                  return (
+                    <button
+                      key={size.slug}
+                      type="button"
+                      onClick={() => isAllowed && setFormData({ ...formData, size: size.slug })}
+                      disabled={!isAllowed}
+                      className={`relative p-2 rounded-lg border-2 text-left transition-all ${
+                        !isAllowed
+                          ? "opacity-50 cursor-not-allowed border-border bg-muted"
+                          : formData.size === size.slug
+                          ? "border-primary bg-accent"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {!isAllowed && (
+                        <Lock className="absolute top-1 right-1 w-3 h-3 text-muted-foreground" />
+                      )}
+                      {isAllowed && formData.size === size.slug && (
+                        <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
+                      )}
+                      <p className={`font-semibold text-sm ${isAllowed ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {size.vcpus} vCPU
+                      </p>
+                      <p className="text-xs text-muted-foreground">{formatMemory(size.memory)} RAM</p>
+                      <p className="text-xs text-muted-foreground">{size.disk} GB SSD</p>
+                      {!isAllowed && (
+                        <p className="text-[10px] text-muted-foreground mt-1 italic">
+                          Hubungi admin untuk akses
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
