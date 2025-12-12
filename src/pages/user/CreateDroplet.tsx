@@ -194,8 +194,8 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
 
   const selectedSize = sizes.find((s) => s.slug === formData.size);
   
-  // Allowed size slugs only
-  const allowedSizes = [
+  // Default allowed size slugs (fallback if no user limits)
+  const defaultAllowedSizes = [
     's-1vcpu-512mb-10gb',
     's-1vcpu-1gb',
     's-1vcpu-2gb',
@@ -205,7 +205,10 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
     's-8vcpu-16gb',
   ];
   
-  // Filter only allowed Regular CPU sizes (show all, but check if user has access)
+  // Use user limits if available, otherwise use defaults
+  const allowedSizes = userLimits?.allowed_sizes || defaultAllowedSizes;
+  
+  // Filter only allowed Regular CPU sizes based on user limits
   const availableSizes = sizes.filter(s => {
     const isAllowed = allowedSizes.includes(s.slug);
     const isInRegion = !formData.region || s.regions.includes(formData.region);
