@@ -146,11 +146,22 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
 
   const selectedSize = sizes.find((s) => s.slug === formData.size);
   
-  // Filter only Regular CPU sizes (slugs starting with "s-") and available in selected region
+  // Allowed size slugs only
+  const allowedSizes = [
+    's-1vcpu-512mb-10gb',
+    's-1vcpu-1gb',
+    's-1vcpu-2gb',
+    's-2vcpu-2gb',
+    's-2vcpu-4gb',
+    's-4vcpu-8gb',
+    's-8vcpu-16gb',
+  ];
+  
+  // Filter only allowed Regular CPU sizes
   const availableSizes = sizes.filter(s => {
-    const isRegular = s.slug.startsWith('s-');
+    const isAllowed = allowedSizes.includes(s.slug);
     const isInRegion = !formData.region || s.regions.includes(formData.region);
-    return isRegular && isInRegion;
+    return isAllowed && isInRegion;
   });
 
   const regionFlags: Record<string, string> = {
@@ -170,9 +181,83 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
     return `${mb} MB`;
   };
 
-  // Combined and filtered OS/App list
+  // Sort regions in proper order
+  const sortedRegions = useMemo(() => {
+    const regionOrder = [
+      'nyc1', 'nyc2', 'nyc3',
+      'sfo1', 'sfo2', 'sfo3',
+      'tor1',
+      'ams2', 'ams3',
+      'lon1',
+      'fra1',
+      'sgp1',
+      'blr1',
+      'syd1',
+    ];
+    return [...regions].sort((a, b) => {
+      const aIndex = regionOrder.indexOf(a.slug);
+      const bIndex = regionOrder.indexOf(b.slug);
+      if (aIndex === -1 && bIndex === -1) return 0;
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [regions]);
+
+  // Group and filter OS/Apps
   const filteredImages = useMemo(() => {
-    const allItems = formData.useApp ? apps : images;
+    let allItems = formData.useApp ? [...apps] : [...images];
+    
+    // Filter out GPU images
+    allItems = allItems.filter(img => {
+      const name = (img.name || '').toLowerCase();
+      const slug = (img.slug || '').toLowerCase();
+      return !name.includes('gpu') && !slug.includes('gpu') && 
+             !name.includes('h100') && !slug.includes('h100');
+    });
+    
+    // Add Ant Media if in apps mode and not already present
+    if (formData.useApp) {
+      const hasAntMedia = allItems.some(img => 
+        img.name.toLowerCase().includes('ant media') || 
+        (img.slug && img.slug.toLowerCase().includes('antmedia'))
+      );
+      if (!hasAntMedia) {
+        allItems.push({
+          id: 999999,
+          name: 'Ant Media Server Enterprise',
+          distribution: 'Ubuntu',
+          slug: 'antmedia',
+          public: true,
+          regions: regions.map(r => r.slug),
+          min_disk_size: 50,
+          type: 'app',
+          description: 'Ant Media Server',
+        } as unknown as DOImage);
+      }
+    }
+    
+    // Group by distribution and sort
+    allItems.sort((a, b) => {
+      const distA = (a.distribution || a.name || '').toLowerCase();
+      const distB = (b.distribution || b.name || '').toLowerCase();
+      
+      // Order: Ubuntu, Debian, CentOS, Fedora, Rocky, Alma, FreeBSD, others
+      const distOrder = ['ubuntu', 'debian', 'centos', 'fedora', 'rocky', 'alma', 'freebsd'];
+      const getDistIndex = (d: string) => {
+        for (let i = 0; i < distOrder.length; i++) {
+          if (d.includes(distOrder[i])) return i;
+        }
+        return 99;
+      };
+      
+      const indexA = getDistIndex(distA);
+      const indexB = getDistIndex(distB);
+      
+      if (indexA !== indexB) return indexA - indexB;
+      return distA.localeCompare(distB);
+    });
+    
     if (!imageSearch.trim()) return allItems;
     
     const search = imageSearch.toLowerCase();
@@ -181,7 +266,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
       (img.distribution && img.distribution.toLowerCase().includes(search)) ||
       (img.slug && img.slug.toLowerCase().includes(search))
     );
-  }, [formData.useApp, apps, images, imageSearch]);
+  }, [formData.useApp, apps, images, imageSearch, regions]);
 
   const selectedImage = useMemo(() => {
     const allItems = formData.useApp ? apps : images;
@@ -200,7 +285,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
 
   return (
     <DashboardLayout role={role}>
-      <div className="space-y-6">
+      <div className="max-w-3xl space-y-6">
         {/* Header */}
         <div>
           <Link 
@@ -278,13 +363,13 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               <CardDescription>Pilih lokasi data center</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                {regions.map((region) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {sortedRegions.map((region) => (
                   <button
                     key={region.slug}
                     type="button"
                     onClick={() => setFormData({ ...formData, region: region.slug, size: '' })}
-                    className={`relative p-3 rounded-lg border-2 text-center transition-all ${
+                    className={`relative p-2 rounded-lg border-2 text-center transition-all ${
                       formData.region === region.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
@@ -293,8 +378,8 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                     {formData.region === region.slug && (
                       <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
                     )}
-                    <span className="text-xl">{regionFlags[region.slug] || '🌐'}</span>
-                    <p className="font-medium text-foreground text-sm mt-1">{formatRegion(region.slug)}</p>
+                    <span className="text-lg">{regionFlags[region.slug] || '🌐'}</span>
+                    <p className="font-medium text-foreground text-xs mt-1">{formatRegion(region.slug)}</p>
                   </button>
                 ))}
               </div>
@@ -311,13 +396,13 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               <CardDescription>Pilih spesifikasi CPU, RAM, dan Storage</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {availableSizes.slice(0, 20).map((size) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {availableSizes.map((size) => (
                   <button
                     key={size.slug}
                     type="button"
                     onClick={() => setFormData({ ...formData, size: size.slug })}
-                    className={`relative p-3 rounded-lg border-2 text-left transition-all ${
+                    className={`relative p-2 rounded-lg border-2 text-left transition-all ${
                       formData.size === size.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
@@ -326,9 +411,9 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                     {formData.size === size.slug && (
                       <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
                     )}
-                    <p className="font-semibold text-foreground">{size.vcpus} vCPU</p>
-                    <p className="text-sm text-muted-foreground">{formatMemory(size.memory)}</p>
-                    <p className="text-sm text-muted-foreground">{size.disk} GB</p>
+                    <p className="font-semibold text-foreground text-sm">{size.vcpus} vCPU</p>
+                    <p className="text-xs text-muted-foreground">{formatMemory(size.memory)} RAM</p>
+                    <p className="text-xs text-muted-foreground">{size.disk} GB SSD</p>
                   </button>
                 ))}
               </div>
@@ -382,7 +467,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               </div>
 
               {/* Image Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[350px] overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[300px] overflow-y-auto">
                 {filteredImages.map((img) => {
                   const imgValue = img.slug || img.id.toString();
                   return (
@@ -390,7 +475,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                       key={img.id}
                       type="button"
                       onClick={() => setFormData({ ...formData, image: imgValue })}
-                      className={`relative p-3 rounded-lg border-2 text-left transition-all ${
+                      className={`relative p-2 rounded-lg border-2 text-left transition-all ${
                         formData.image === imgValue
                           ? "border-primary bg-accent"
                           : "border-border hover:border-primary/50"
@@ -399,8 +484,8 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                       {formData.image === imgValue && (
                         <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
                       )}
-                      <span className="text-xl">{getOSLogo(img.distribution, img.name)}</span>
-                      <p className="font-medium text-foreground text-sm mt-1 pr-4 truncate">
+                      <span className="text-lg">{getOSLogo(img.distribution, img.name)}</span>
+                      <p className="font-medium text-foreground text-xs mt-1 pr-4 truncate">
                         {formatImage(img.slug || img.name)}
                       </p>
                     </button>
