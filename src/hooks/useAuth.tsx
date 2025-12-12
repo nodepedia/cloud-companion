@@ -11,7 +11,7 @@ interface AuthContextType {
   username: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (username: string, password: string, inviteKey: string) => Promise<{ error: Error | null }>;
+  signUp: (username: string, email: string, password: string, inviteKey: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -87,11 +87,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (usernameInput: string, password: string) => {
     try {
-      // Get email from username (we use username@cloudmanager.app as fake email)
-      const fakeEmail = `${usernameInput.toLowerCase()}@cloudmanager.app`;
-      
+      // Get user's email from profiles by username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', usernameInput.toLowerCase())
+        .maybeSingle();
+
+      if (!profile || !profile.email) {
+        return { error: new Error('Username atau password salah') };
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email: fakeEmail,
+        email: profile.email,
         password,
       });
       
@@ -105,11 +113,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (usernameInput: string, password: string, inviteKey: string) => {
+  const signUp = async (usernameInput: string, email: string, password: string, inviteKey: string) => {
     try {
       // Validate username format
       if (!/^[a-zA-Z0-9_]{3,20}$/.test(usernameInput)) {
         return { error: new Error('Username harus 3-20 karakter, hanya huruf, angka, dan underscore') };
+      }
+
+      // Validate email format
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return { error: new Error('Format email tidak valid') };
       }
 
       // Check if invite key is valid
@@ -136,11 +149,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error('Username sudah digunakan') };
       }
 
-      // Create user with fake email (username@cloudmanager.app)
-      const fakeEmail = `${usernameInput.toLowerCase()}@cloudmanager.app`;
-      
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: fakeEmail,
+        email,
         password,
         options: {
           data: {
