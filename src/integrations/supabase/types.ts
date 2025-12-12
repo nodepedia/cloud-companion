@@ -73,6 +73,9 @@ export type Database = {
           is_active: boolean
           key: string
           max_uses: number
+          preset_allowed_sizes: string[] | null
+          preset_auto_destroy_days: number | null
+          preset_max_droplets: number | null
           used_at: string | null
           used_by: string | null
         }
@@ -84,6 +87,9 @@ export type Database = {
           is_active?: boolean
           key: string
           max_uses?: number
+          preset_allowed_sizes?: string[] | null
+          preset_auto_destroy_days?: number | null
+          preset_max_droplets?: number | null
           used_at?: string | null
           used_by?: string | null
         }
@@ -95,6 +101,9 @@ export type Database = {
           is_active?: boolean
           key?: string
           max_uses?: number
+          preset_allowed_sizes?: string[] | null
+          preset_auto_destroy_days?: number | null
+          preset_max_droplets?: number | null
           used_at?: string | null
           used_by?: string | null
         }
