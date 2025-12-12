@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import ApiKeysTab from "@/components/settings/ApiKeysTab";
 import InviteKeysTab from "@/components/settings/InviteKeysTab";
+import GeneralSettingsTab from "@/components/settings/GeneralSettingsTab";
 
 const passwordSchema = z.object({
   newPassword: z.string()
@@ -85,12 +86,17 @@ const Settings = ({ role = "user" }: SettingsProps) => {
         </div>
 
         {role === "admin" ? (
-          <Tabs defaultValue="password" className="space-y-6">
+          <Tabs defaultValue="general" className="space-y-6">
             <TabsList>
+              <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="password">Password</TabsTrigger>
               <TabsTrigger value="api-keys">API Key</TabsTrigger>
               <TabsTrigger value="invite-keys">Invite Key</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="general">
+              <GeneralSettingsTab />
+            </TabsContent>
 
             <TabsContent value="password">
               <PasswordChangeCard
