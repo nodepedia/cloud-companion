@@ -45,6 +45,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 import DropletIPCountdown from "@/components/DropletIPCountdown";
+import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
 
 const AdminDroplets = () => {
   const { toast } = useToast();
@@ -304,16 +305,16 @@ const AdminDroplets = () => {
                       <p className="text-muted-foreground">Region</p>
                       <p className="font-medium flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
-                        {droplet.region}
+                        {formatRegion(droplet.region)}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Ukuran</p>
-                      <p className="font-medium">{droplet.size}</p>
+                      <p className="font-medium">{formatSize(droplet.size)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Image</p>
-                      <p className="font-medium">{droplet.image}</p>
+                      <p className="font-medium">{formatImage(droplet.image)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Alamat IP</p>
