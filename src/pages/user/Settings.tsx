@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import ApiKeysTab from "@/components/settings/ApiKeysTab";
-import InviteKeysTab from "@/components/settings/InviteKeysTab";
 import GeneralSettingsTab from "@/components/settings/GeneralSettingsTab";
 
 const passwordSchema = z.object({
@@ -91,7 +90,6 @@ const Settings = ({ role = "user" }: SettingsProps) => {
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="password">Password</TabsTrigger>
               <TabsTrigger value="api-keys">API Key</TabsTrigger>
-              <TabsTrigger value="invite-keys">Invite Key</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -116,10 +114,6 @@ const Settings = ({ role = "user" }: SettingsProps) => {
 
             <TabsContent value="api-keys">
               <ApiKeysTab />
-            </TabsContent>
-
-            <TabsContent value="invite-keys">
-              <InviteKeysTab />
             </TabsContent>
           </Tabs>
         ) : (
