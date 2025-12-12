@@ -27,19 +27,19 @@ const Navbar = () => {
               to="/" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Home
+              Beranda
             </Link>
             <Link 
               to="/#features" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Features
+              Fitur
             </Link>
             <Link 
               to="/#about" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              About
+              Tentang
             </Link>
           </div>
 
@@ -47,10 +47,10 @@ const Navbar = () => {
           {!isAuthPage && (
             <div className="hidden md:flex items-center gap-3">
               <Button variant="ghost" asChild>
-                <Link to="/auth">Login</Link>
+                <Link to="/auth">Masuk</Link>
               </Button>
               <Button variant="default" asChild>
-                <Link to="/auth?mode=register">Get Started</Link>
+                <Link to="/auth?mode=register">Daftar</Link>
               </Button>
             </div>
           )}
@@ -73,29 +73,29 @@ const Navbar = () => {
                 className="text-muted-foreground hover:text-foreground transition-colors px-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Home
+                Beranda
               </Link>
               <Link 
                 to="/#features" 
                 className="text-muted-foreground hover:text-foreground transition-colors px-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Features
+                Fitur
               </Link>
               <Link 
                 to="/#about" 
                 className="text-muted-foreground hover:text-foreground transition-colors px-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                About
+                Tentang
               </Link>
               {!isAuthPage && (
                 <div className="flex flex-col gap-2 pt-2 border-t">
                   <Button variant="ghost" asChild className="justify-start">
-                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>Login</Link>
+                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>Masuk</Link>
                   </Button>
                   <Button variant="default" asChild>
-                    <Link to="/auth?mode=register" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+                    <Link to="/auth?mode=register" onClick={() => setIsMenuOpen(false)}>Daftar</Link>
                   </Button>
                 </div>
               )}

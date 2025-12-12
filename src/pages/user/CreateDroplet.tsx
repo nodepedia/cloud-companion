@@ -50,11 +50,11 @@ const CreateDroplet = () => {
   ];
 
   const sizes = [
-    { value: "s-1vcpu-1gb", label: "Basic", specs: "1 vCPU, 1GB RAM, 25GB SSD", price: "$6/mo" },
-    { value: "s-1vcpu-2gb", label: "Standard", specs: "1 vCPU, 2GB RAM, 50GB SSD", price: "$12/mo" },
-    { value: "s-2vcpu-2gb", label: "Professional", specs: "2 vCPU, 2GB RAM, 60GB SSD", price: "$18/mo" },
-    { value: "s-2vcpu-4gb", label: "Advanced", specs: "2 vCPU, 4GB RAM, 80GB SSD", price: "$24/mo" },
-    { value: "s-4vcpu-8gb", label: "Premium", specs: "4 vCPU, 8GB RAM, 160GB SSD", price: "$48/mo" },
+    { value: "s-1vcpu-1gb", label: "Basic", specs: "1 vCPU, 1GB RAM, 25GB SSD" },
+    { value: "s-1vcpu-2gb", label: "Standard", specs: "1 vCPU, 2GB RAM, 50GB SSD" },
+    { value: "s-2vcpu-2gb", label: "Professional", specs: "2 vCPU, 2GB RAM, 60GB SSD" },
+    { value: "s-2vcpu-4gb", label: "Advanced", specs: "2 vCPU, 4GB RAM, 80GB SSD" },
+    { value: "s-4vcpu-8gb", label: "Premium", specs: "4 vCPU, 8GB RAM, 160GB SSD" },
   ];
 
   const operatingSystems = [
@@ -68,7 +68,7 @@ const CreateDroplet = () => {
   ];
 
   const templates = [
-    { value: "none", label: "No Template (Clean Install)" },
+    { value: "none", label: "Tanpa Template (Clean Install)" },
     { value: "lamp", label: "LAMP Stack (Linux, Apache, MySQL, PHP)" },
     { value: "lemp", label: "LEMP Stack (Linux, Nginx, MySQL, PHP)" },
     { value: "docker", label: "Docker" },
@@ -81,8 +81,8 @@ const CreateDroplet = () => {
     
     if (!formData.name || !formData.password || !formData.region || !formData.size || !formData.os) {
       toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields",
+        title: "Field Belum Lengkap",
+        description: "Mohon isi semua field yang wajib",
         variant: "destructive",
       });
       return;
@@ -94,8 +94,8 @@ const CreateDroplet = () => {
     setTimeout(() => {
       setIsCreating(false);
       toast({
-        title: "Droplet Created!",
-        description: `${formData.name} is being deployed. This may take a few minutes.`,
+        title: "Droplet Berhasil Dibuat!",
+        description: `${formData.name} sedang di-deploy. Proses ini membutuhkan beberapa menit.`,
       });
       navigate("/dashboard/droplets");
     }, 2000);
@@ -113,10 +113,10 @@ const CreateDroplet = () => {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Droplets
+            Kembali ke Droplet
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">Create Droplet</h1>
-          <p className="text-muted-foreground">Deploy a new cloud server</p>
+          <h1 className="text-2xl font-bold text-foreground">Buat Droplet</h1>
+          <p className="text-muted-foreground">Deploy cloud server baru</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -125,22 +125,22 @@ const CreateDroplet = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Server className="w-5 h-5 text-primary" />
-                Basic Information
+                Informasi Dasar
               </CardTitle>
-              <CardDescription>Name your droplet and set a root password</CardDescription>
+              <CardDescription>Beri nama droplet dan atur root password</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Droplet Name</Label>
+                <Label htmlFor="name">Nama Droplet</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., my-web-server"
+                  placeholder="contoh: web-server-ku"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Only lowercase letters, numbers, and hyphens allowed
+                  Hanya huruf kecil, angka, dan tanda hubung yang diperbolehkan
                 </p>
               </div>
               <div className="space-y-2">
@@ -149,7 +149,7 @@ const CreateDroplet = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter a strong password"
+                    placeholder="Masukkan password yang kuat"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="pr-10"
@@ -164,7 +164,7 @@ const CreateDroplet = () => {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  This will be used to access your droplet via SSH
+                  Ini akan digunakan untuk mengakses droplet via SSH
                 </p>
               </div>
             </CardContent>
@@ -177,7 +177,7 @@ const CreateDroplet = () => {
                 <MapPin className="w-5 h-5 text-primary" />
                 Region
               </CardTitle>
-              <CardDescription>Choose the datacenter location</CardDescription>
+              <CardDescription>Pilih lokasi data center</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -208,9 +208,9 @@ const CreateDroplet = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-primary" />
-                Size
+                Ukuran
               </CardTitle>
-              <CardDescription>Choose the specifications for your droplet</CardDescription>
+              <CardDescription>Pilih spesifikasi untuk droplet Anda</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -228,12 +228,9 @@ const CreateDroplet = () => {
                     {formData.size === size.value && (
                       <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary" />
                     )}
-                    <div className="flex items-center justify-between pr-8">
-                      <div>
-                        <p className="font-semibold text-foreground">{size.label}</p>
-                        <p className="text-sm text-muted-foreground">{size.specs}</p>
-                      </div>
-                      <p className="font-semibold text-primary">{size.price}</p>
+                    <div className="pr-8">
+                      <p className="font-semibold text-foreground">{size.label}</p>
+                      <p className="text-sm text-muted-foreground">{size.specs}</p>
                     </div>
                   </button>
                 ))}
@@ -246,9 +243,9 @@ const CreateDroplet = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <HardDrive className="w-5 h-5 text-primary" />
-                Operating System
+                Sistem Operasi
               </CardTitle>
-              <CardDescription>Select an operating system image</CardDescription>
+              <CardDescription>Pilih image sistem operasi</CardDescription>
             </CardHeader>
             <CardContent>
               <Select
@@ -256,7 +253,7 @@ const CreateDroplet = () => {
                 onValueChange={(value) => setFormData({ ...formData, os: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select an operating system" />
+                  <SelectValue placeholder="Pilih sistem operasi" />
                 </SelectTrigger>
                 <SelectContent>
                   {operatingSystems.map((os) => (
@@ -275,8 +272,8 @@ const CreateDroplet = () => {
           {/* Template */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Template (Optional)</CardTitle>
-              <CardDescription>Pre-install applications and configurations</CardDescription>
+              <CardTitle className="text-lg">Template (Opsional)</CardTitle>
+              <CardDescription>Pre-install aplikasi dan konfigurasi</CardDescription>
             </CardHeader>
             <CardContent>
               <Select
@@ -284,7 +281,7 @@ const CreateDroplet = () => {
                 onValueChange={(value) => setFormData({ ...formData, template: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a template (optional)" />
+                  <SelectValue placeholder="Pilih template (opsional)" />
                 </SelectTrigger>
                 <SelectContent>
                   {templates.map((template) => (
@@ -302,9 +299,9 @@ const CreateDroplet = () => {
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Monthly Cost</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {selectedSize?.price || "$0/mo"}
+                  <p className="text-sm text-muted-foreground">Spesifikasi Terpilih</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {selectedSize?.label || "Belum dipilih"} {selectedSize && `- ${selectedSize.specs}`}
                   </p>
                 </div>
                 <Button 
@@ -313,7 +310,7 @@ const CreateDroplet = () => {
                   size="lg"
                   disabled={isCreating}
                 >
-                  {isCreating ? "Creating..." : "Create Droplet"}
+                  {isCreating ? "Membuat..." : "Buat Droplet"}
                 </Button>
               </div>
             </CardContent>

@@ -24,14 +24,14 @@ const ApiKeys = () => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
       id: "1",
-      name: "Production API Key",
+      name: "API Key Produksi",
       key: "dop_v1_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       isActive: true,
       createdAt: "2024-01-15",
     },
     {
       id: "2",
-      name: "Backup API Key",
+      name: "API Key Cadangan",
       key: "dop_v1_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
       isActive: false,
       createdAt: "2024-01-10",
@@ -55,16 +55,16 @@ const ApiKeys = () => {
     setShowAddForm(false);
     
     toast({
-      title: "API Key Added",
-      description: "Your new API key has been added successfully.",
+      title: "API Key Ditambahkan",
+      description: "API key baru Anda berhasil ditambahkan.",
     });
   };
 
   const handleDeleteKey = (id: string) => {
     setApiKeys(apiKeys.filter((k) => k.id !== id));
     toast({
-      title: "API Key Deleted",
-      description: "The API key has been removed.",
+      title: "API Key Dihapus",
+      description: "API key telah dihapus.",
     });
   };
 
@@ -76,8 +76,8 @@ const ApiKeys = () => {
       }))
     );
     toast({
-      title: "API Key Activated",
-      description: "This API key is now the active key for droplet creation.",
+      title: "API Key Diaktifkan",
+      description: "API key ini sekarang menjadi key aktif untuk pembuatan droplet.",
     });
   };
 
@@ -95,12 +95,12 @@ const ApiKeys = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">API Keys</h1>
-            <p className="text-muted-foreground">Manage your DigitalOcean API keys</p>
+            <h1 className="text-2xl font-bold text-foreground">API Key</h1>
+            <p className="text-muted-foreground">Kelola API key DigitalOcean Anda</p>
           </div>
           <Button onClick={() => setShowAddForm(!showAddForm)}>
             <Plus className="w-4 h-4" />
-            Add API Key
+            Tambah API Key
           </Button>
         </div>
 
@@ -108,19 +108,19 @@ const ApiKeys = () => {
         {showAddForm && (
           <Card className="animate-fade-up">
             <CardHeader>
-              <CardTitle className="text-lg">Add New API Key</CardTitle>
+              <CardTitle className="text-lg">Tambah API Key Baru</CardTitle>
               <CardDescription>
-                Enter your DigitalOcean API key. This will be used for creating and managing droplets.
+                Masukkan API key DigitalOcean Anda. Ini akan digunakan untuk membuat dan mengelola droplet.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddKey} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="keyName">Key Name</Label>
+                    <Label htmlFor="keyName">Nama Key</Label>
                     <Input
                       id="keyName"
-                      placeholder="e.g., Production API Key"
+                      placeholder="contoh: API Key Produksi"
                       value={newKey.name}
                       onChange={(e) => setNewKey({ ...newKey, name: e.target.value })}
                       required
@@ -139,9 +139,9 @@ const ApiKeys = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit">Save API Key</Button>
+                  <Button type="submit">Simpan API Key</Button>
                   <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
-                    Cancel
+                    Batal
                   </Button>
                 </div>
               </form>
@@ -155,13 +155,13 @@ const ApiKeys = () => {
             <Card>
               <CardContent className="py-12 text-center">
                 <Key className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No API Keys</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">Belum Ada API Key</h3>
                 <p className="text-muted-foreground mb-4">
-                  Add your first DigitalOcean API key to start creating droplets
+                  Tambahkan API key DigitalOcean pertama Anda untuk mulai membuat droplet
                 </p>
                 <Button onClick={() => setShowAddForm(true)}>
                   <Plus className="w-4 h-4" />
-                  Add API Key
+                  Tambah API Key
                 </Button>
               </CardContent>
             </Card>
@@ -182,7 +182,7 @@ const ApiKeys = () => {
                           {apiKey.isActive && (
                             <span className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">
                               <CheckCircle className="w-3 h-3" />
-                              Active
+                              Aktif
                             </span>
                           )}
                         </div>
@@ -202,7 +202,7 @@ const ApiKeys = () => {
                           </button>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Added on {apiKey.createdAt}
+                          Ditambahkan pada {apiKey.createdAt}
                         </p>
                       </div>
                     </div>
@@ -213,7 +213,7 @@ const ApiKeys = () => {
                           size="sm"
                           onClick={() => handleSetActive(apiKey.id)}
                         >
-                          Set Active
+                          Jadikan Aktif
                         </Button>
                       )}
                       <Button
@@ -238,13 +238,13 @@ const ApiKeys = () => {
             <div className="flex items-start gap-4">
               <AlertCircle className="w-5 h-5 text-primary mt-0.5" />
               <div>
-                <h4 className="font-medium text-foreground">How to get your DigitalOcean API Key</h4>
+                <h4 className="font-medium text-foreground">Cara mendapatkan API Key DigitalOcean</h4>
                 <ol className="mt-2 text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Go to your DigitalOcean Control Panel</li>
-                  <li>Navigate to API → Tokens/Keys</li>
-                  <li>Click "Generate New Token"</li>
-                  <li>Give it a name and select "Read & Write" scope</li>
-                  <li>Copy the token and paste it here</li>
+                  <li>Masuk ke DigitalOcean Control Panel</li>
+                  <li>Navigasi ke API → Tokens/Keys</li>
+                  <li>Klik "Generate New Token"</li>
+                  <li>Beri nama dan pilih scope "Read & Write"</li>
+                  <li>Salin token dan tempel di sini</li>
                 </ol>
               </div>
             </div>

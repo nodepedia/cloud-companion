@@ -84,18 +84,31 @@ const UserDroplets = () => {
     return styles[status as keyof typeof styles] || "";
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "running":
+        return "Berjalan";
+      case "stopped":
+        return "Berhenti";
+      case "creating":
+        return "Membuat";
+      default:
+        return status;
+    }
+  };
+
   const handleAction = (action: string, dropletName: string) => {
     toast({
-      title: `${action} initiated`,
-      description: `${action} action on ${dropletName}`,
+      title: `${action} dimulai`,
+      description: `Aksi ${action} pada ${dropletName}`,
     });
   };
 
   const handleCopyIP = (ip: string) => {
     navigator.clipboard.writeText(ip);
     toast({
-      title: "IP Copied",
-      description: "IP address copied to clipboard",
+      title: "IP Disalin",
+      description: "Alamat IP berhasil disalin ke clipboard",
     });
   };
 
@@ -105,13 +118,13 @@ const UserDroplets = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">My Droplets</h1>
-            <p className="text-muted-foreground">Manage your cloud servers</p>
+            <h1 className="text-2xl font-bold text-foreground">Droplet Saya</h1>
+            <p className="text-muted-foreground">Kelola cloud server Anda</p>
           </div>
           <Button asChild>
             <Link to="/dashboard/droplets/create">
               <Plus className="w-4 h-4" />
-              Create Droplet
+              Buat Droplet
             </Link>
           </Button>
         </div>
@@ -121,14 +134,14 @@ const UserDroplets = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Server className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No Droplets Yet</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Belum Ada Droplet</h3>
               <p className="text-muted-foreground mb-4">
-                Create your first cloud server to get started
+                Buat cloud server pertama Anda untuk memulai
               </p>
               <Button asChild>
                 <Link to="/dashboard/droplets/create">
                   <Plus className="w-4 h-4" />
-                  Create Droplet
+                  Buat Droplet
                 </Link>
               </Button>
             </CardContent>
@@ -148,7 +161,7 @@ const UserDroplets = () => {
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${getStatusBadge(droplet.status)}`}>
                             {getStatusIcon(droplet.status)}
-                            <span className="capitalize">{droplet.status}</span>
+                            <span>{getStatusLabel(droplet.status)}</span>
                           </span>
                         </div>
                       </div>
@@ -162,7 +175,7 @@ const UserDroplets = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip)}>
                           <Copy className="w-4 h-4 mr-2" />
-                          Copy IP
+                          Salin IP
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleAction("SSH Console", droplet.name)}>
                           <Terminal className="w-4 h-4 mr-2" />
@@ -170,7 +183,7 @@ const UserDroplets = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleAction("Power toggle", droplet.name)}>
                           <Power className="w-4 h-4 mr-2" />
-                          {droplet.status === "running" ? "Power Off" : "Power On"}
+                          {droplet.status === "running" ? "Matikan" : "Nyalakan"}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleAction("Reboot", droplet.name)}>
                           <RefreshCw className="w-4 h-4 mr-2" />
@@ -178,10 +191,10 @@ const UserDroplets = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-destructive"
-                          onClick={() => handleAction("Delete", droplet.name)}
+                          onClick={() => handleAction("Hapus", droplet.name)}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          Hapus
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -196,7 +209,7 @@ const UserDroplets = () => {
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Size</p>
+                      <p className="text-muted-foreground">Ukuran</p>
                       <p className="font-medium">{droplet.size}</p>
                     </div>
                     <div>
@@ -204,7 +217,7 @@ const UserDroplets = () => {
                       <p className="font-medium">{droplet.os}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">IP Address</p>
+                      <p className="text-muted-foreground">Alamat IP</p>
                       <button 
                         onClick={() => handleCopyIP(droplet.ip)}
                         className="font-medium font-mono hover:text-primary transition-colors"
@@ -216,7 +229,7 @@ const UserDroplets = () => {
 
                   {/* SSH Command */}
                   <div className="mt-4 p-3 rounded-lg bg-secondary">
-                    <p className="text-xs text-muted-foreground mb-1">SSH Command</p>
+                    <p className="text-xs text-muted-foreground mb-1">Perintah SSH</p>
                     <code className="text-sm font-mono text-foreground">
                       ssh root@{droplet.ip}
                     </code>

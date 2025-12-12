@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -134,10 +134,23 @@ const AdminDroplets = () => {
     return styles[status as keyof typeof styles] || "";
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "running":
+        return "Berjalan";
+      case "stopped":
+        return "Berhenti";
+      case "creating":
+        return "Membuat";
+      default:
+        return status;
+    }
+  };
+
   const handleAction = (action: string, dropletName: string) => {
     toast({
-      title: `${action} initiated`,
-      description: `${action} action on ${dropletName}`,
+      title: `${action} dimulai`,
+      description: `Aksi ${action} pada ${dropletName}`,
     });
   };
 
@@ -146,8 +159,8 @@ const AdminDroplets = () => {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">All Droplets</h1>
-          <p className="text-muted-foreground">Manage all user droplets</p>
+          <h1 className="text-2xl font-bold text-foreground">Semua Droplet</h1>
+          <p className="text-muted-foreground">Kelola semua droplet user</p>
         </div>
 
         {/* Filters */}
@@ -157,7 +170,7 @@ const AdminDroplets = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, user, or IP..."
+                  placeholder="Cari berdasarkan nama, user, atau IP..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -168,10 +181,10 @@ const AdminDroplets = () => {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="running">Running</SelectItem>
-                  <SelectItem value="stopped">Stopped</SelectItem>
-                  <SelectItem value="creating">Creating</SelectItem>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="running">Berjalan</SelectItem>
+                  <SelectItem value="stopped">Berhenti</SelectItem>
+                  <SelectItem value="creating">Membuat</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={userFilter} onValueChange={setUserFilter}>
@@ -179,7 +192,7 @@ const AdminDroplets = () => {
                   <SelectValue placeholder="User" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Users</SelectItem>
+                  <SelectItem value="all">Semua User</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user} value={user}>
                       {user}
@@ -207,7 +220,7 @@ const AdminDroplets = () => {
                       <div className="flex items-center gap-2 mt-2">
                         <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${getStatusBadge(droplet.status)}`}>
                           {getStatusIcon(droplet.status)}
-                          <span className="capitalize">{droplet.status}</span>
+                          <span>{getStatusLabel(droplet.status)}</span>
                         </span>
                       </div>
                     </div>
@@ -221,7 +234,7 @@ const AdminDroplets = () => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleAction("Power toggle", droplet.name)}>
                         <Power className="w-4 h-4 mr-2" />
-                        {droplet.status === "running" ? "Power Off" : "Power On"}
+                        {droplet.status === "running" ? "Matikan" : "Nyalakan"}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAction("Reboot", droplet.name)}>
                         <RefreshCw className="w-4 h-4 mr-2" />
@@ -229,10 +242,10 @@ const AdminDroplets = () => {
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="text-destructive"
-                        onClick={() => handleAction("Delete", droplet.name)}
+                        onClick={() => handleAction("Hapus", droplet.name)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
+                        Hapus
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -247,7 +260,7 @@ const AdminDroplets = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Size</p>
+                    <p className="text-muted-foreground">Ukuran</p>
                     <p className="font-medium">{droplet.size}</p>
                   </div>
                   <div>
@@ -255,7 +268,7 @@ const AdminDroplets = () => {
                     <p className="font-medium">{droplet.os}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">IP Address</p>
+                    <p className="text-muted-foreground">Alamat IP</p>
                     <p className="font-medium font-mono">{droplet.ip}</p>
                   </div>
                 </div>
@@ -268,9 +281,9 @@ const AdminDroplets = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Server className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No Droplets Found</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Tidak Ada Droplet Ditemukan</h3>
               <p className="text-muted-foreground">
-                No droplets match your current filters.
+                Tidak ada droplet yang sesuai dengan filter Anda.
               </p>
             </CardContent>
           </Card>
