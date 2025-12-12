@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,8 @@ import {
   Clock,
   MapPin,
   Terminal,
-  Copy
+  Copy,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,85 +24,111 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-
-interface Droplet {
-  id: string;
-  name: string;
-  status: "running" | "stopped" | "creating";
-  region: string;
-  size: string;
-  os: string;
-  ip: string;
-  created: string;
-}
+import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 
 const UserDroplets = () => {
   const { toast } = useToast();
+  const { loading, listDroplets, dropletAction } = useDigitalOcean();
+  
+  const [droplets, setDroplets] = useState<Droplet[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
 
-  const [droplets] = useState<Droplet[]>([
-    {
-      id: "1",
-      name: "my-web-server",
-      status: "running",
-      region: "Singapore",
-      size: "s-1vcpu-1gb",
-      os: "Ubuntu 22.04",
-      ip: "143.198.123.45",
-      created: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "dev-environment",
-      status: "stopped",
-      region: "Amsterdam",
-      size: "s-1vcpu-2gb",
-      os: "Debian 11",
-      ip: "178.62.234.56",
-      created: "2024-01-13",
-    },
-  ]);
+  const loadDroplets = async () => {
+    try {
+      const data = await listDroplets();
+      setDroplets(data);
+    } catch (error) {
+      console.error('Failed to load droplets:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDroplets();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadDroplets, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "running":
+      case "active":
         return <CheckCircle className="w-4 h-4 text-success" />;
-      case "stopped":
+      case "off":
         return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
-      case "creating":
+      case "new":
+      case "archive":
         return <Clock className="w-4 h-4 text-warning animate-pulse" />;
       default:
-        return null;
+        return <Clock className="w-4 h-4 text-warning" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const styles = {
-      running: "bg-success/10 text-success",
-      stopped: "bg-muted text-muted-foreground",
-      creating: "bg-warning/10 text-warning",
+    const styles: Record<string, string> = {
+      active: "bg-success/10 text-success",
+      off: "bg-muted text-muted-foreground",
+      new: "bg-warning/10 text-warning",
+      archive: "bg-warning/10 text-warning",
     };
-    return styles[status as keyof typeof styles] || "";
+    return styles[status] || "bg-muted text-muted-foreground";
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "running":
-        return "Berjalan";
-      case "stopped":
-        return "Berhenti";
-      case "creating":
-        return "Membuat";
-      default:
-        return status;
+    const labels: Record<string, string> = {
+      active: "Berjalan",
+      off: "Mati",
+      new: "Membuat...",
+      archive: "Mengarsip...",
+    };
+    return labels[status] || status;
+  };
+
+  const handleAction = async (droplet: Droplet, action: string) => {
+    if (action === 'delete') {
+      setDeleteDialog({ open: true, droplet });
+      return;
+    }
+
+    setActionLoading(droplet.id);
+    try {
+      await dropletAction(droplet.id, action);
+      // Refresh after action
+      setTimeout(loadDroplets, 2000);
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const handleAction = (action: string, dropletName: string) => {
-    toast({
-      title: `${action} dimulai`,
-      description: `Aksi ${action} pada ${dropletName}`,
-    });
+  const confirmDelete = async () => {
+    if (!deleteDialog.droplet) return;
+    
+    setActionLoading(deleteDialog.droplet.id);
+    setDeleteDialog({ open: false, droplet: null });
+    
+    try {
+      await dropletAction(deleteDialog.droplet.id, 'delete');
+      setDroplets(prev => prev.filter(d => d.id !== deleteDialog.droplet!.id));
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleCopyIP = (ip: string) => {
@@ -111,6 +138,16 @@ const UserDroplets = () => {
       description: "Alamat IP berhasil disalin ke clipboard",
     });
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="user">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="user">
@@ -168,30 +205,32 @@ const UserDroplets = () => {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="w-4 h-4" />
+                        <Button variant="ghost" size="icon" disabled={actionLoading === droplet.id}>
+                          {actionLoading === droplet.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <MoreVertical className="w-4 h-4" />
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip)}>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Salin IP
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction("SSH Console", droplet.name)}>
-                          <Terminal className="w-4 h-4 mr-2" />
-                          Console
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction("Power toggle", droplet.name)}>
+                        {droplet.ip_address && (
+                          <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip_address!)}>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Salin IP
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')}>
                           <Power className="w-4 h-4 mr-2" />
-                          {droplet.status === "running" ? "Matikan" : "Nyalakan"}
+                          {droplet.status === "active" ? "Matikan" : "Nyalakan"}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction("Reboot", droplet.name)}>
+                        <DropdownMenuItem onClick={() => handleAction(droplet, 'reboot')}>
                           <RefreshCw className="w-4 h-4 mr-2" />
                           Reboot
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-destructive"
-                          onClick={() => handleAction("Hapus", droplet.name)}
+                          onClick={() => handleAction(droplet, 'delete')}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
                           Hapus
@@ -213,33 +252,58 @@ const UserDroplets = () => {
                       <p className="font-medium">{droplet.size}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">OS</p>
-                      <p className="font-medium">{droplet.os}</p>
+                      <p className="text-muted-foreground">Image</p>
+                      <p className="font-medium">{droplet.image}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Alamat IP</p>
-                      <button 
-                        onClick={() => handleCopyIP(droplet.ip)}
-                        className="font-medium font-mono hover:text-primary transition-colors"
-                      >
-                        {droplet.ip}
-                      </button>
+                      {droplet.ip_address ? (
+                        <button 
+                          onClick={() => handleCopyIP(droplet.ip_address!)}
+                          className="font-medium font-mono hover:text-primary transition-colors"
+                        >
+                          {droplet.ip_address}
+                        </button>
+                      ) : (
+                        <p className="text-muted-foreground italic">Pending...</p>
+                      )}
                     </div>
                   </div>
 
                   {/* SSH Command */}
-                  <div className="mt-4 p-3 rounded-lg bg-secondary">
-                    <p className="text-xs text-muted-foreground mb-1">Perintah SSH</p>
-                    <code className="text-sm font-mono text-foreground">
-                      ssh root@{droplet.ip}
-                    </code>
-                  </div>
+                  {droplet.ip_address && (
+                    <div className="mt-4 p-3 rounded-lg bg-secondary">
+                      <p className="text-xs text-muted-foreground mb-1">Perintah SSH</p>
+                      <code className="text-sm font-mono text-foreground">
+                        ssh root@{droplet.ip_address}
+                      </code>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, droplet: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Droplet?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus droplet <strong>{deleteDialog.droplet?.name}</strong>? 
+              Tindakan ini tidak dapat dibatalkan dan semua data akan hilang.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

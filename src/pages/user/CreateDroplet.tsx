@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,88 +20,113 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useDigitalOcean, DORegion, DOSize, DOImage } from "@/hooks/useDigitalOcean";
 
 const CreateDroplet = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { loading, getRegions, getSizes, getImages, getApps, createDroplet } = useDigitalOcean();
+  
   const [isCreating, setIsCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const [regions, setRegions] = useState<DORegion[]>([]);
+  const [sizes, setSizes] = useState<DOSize[]>([]);
+  const [images, setImages] = useState<DOImage[]>([]);
+  const [apps, setApps] = useState<DOImage[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
     password: "",
     region: "",
     size: "",
-    os: "",
-    template: "",
+    image: "",
+    useApp: false,
   });
 
-  const regions = [
-    { value: "sgp1", label: "Singapore", flag: "🇸🇬" },
-    { value: "nyc1", label: "New York 1", flag: "🇺🇸" },
-    { value: "lon1", label: "London", flag: "🇬🇧" },
-    { value: "ams3", label: "Amsterdam 3", flag: "🇳🇱" },
-    { value: "fra1", label: "Frankfurt 1", flag: "🇩🇪" },
-    { value: "blr1", label: "Bangalore", flag: "🇮🇳" },
-  ];
-
-  const sizes = [
-    { value: "s-1vcpu-1gb", label: "Basic", specs: "1 vCPU, 1GB RAM, 25GB SSD" },
-    { value: "s-1vcpu-2gb", label: "Standard", specs: "1 vCPU, 2GB RAM, 50GB SSD" },
-    { value: "s-2vcpu-2gb", label: "Professional", specs: "2 vCPU, 2GB RAM, 60GB SSD" },
-    { value: "s-2vcpu-4gb", label: "Advanced", specs: "2 vCPU, 4GB RAM, 80GB SSD" },
-    { value: "s-4vcpu-8gb", label: "Premium", specs: "4 vCPU, 8GB RAM, 160GB SSD" },
-  ];
-
-  const operatingSystems = [
-    { value: "ubuntu-22-04", label: "Ubuntu 22.04 LTS", icon: "🐧" },
-    { value: "ubuntu-20-04", label: "Ubuntu 20.04 LTS", icon: "🐧" },
-    { value: "debian-11", label: "Debian 11", icon: "🐧" },
-    { value: "debian-12", label: "Debian 12", icon: "🐧" },
-    { value: "centos-9", label: "CentOS Stream 9", icon: "🐧" },
-    { value: "rocky-9", label: "Rocky Linux 9", icon: "🐧" },
-    { value: "fedora-39", label: "Fedora 39", icon: "🐧" },
-  ];
-
-  const templates = [
-    { value: "none", label: "Tanpa Template (Clean Install)" },
-    { value: "lamp", label: "LAMP Stack (Linux, Apache, MySQL, PHP)" },
-    { value: "lemp", label: "LEMP Stack (Linux, Nginx, MySQL, PHP)" },
-    { value: "docker", label: "Docker" },
-    { value: "nodejs", label: "Node.js" },
-    { value: "wordpress", label: "WordPress" },
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoadingData(true);
+      try {
+        const [regionsData, sizesData, imagesData, appsData] = await Promise.all([
+          getRegions(),
+          getSizes(),
+          getImages(),
+          getApps(),
+        ]);
+        setRegions(regionsData);
+        setSizes(sizesData);
+        setImages(imagesData);
+        setApps(appsData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.password || !formData.region || !formData.size || !formData.os) {
-      toast({
-        title: "Field Belum Lengkap",
-        description: "Mohon isi semua field yang wajib",
-        variant: "destructive",
-      });
+    if (!formData.name || !formData.password || !formData.region || !formData.size || !formData.image) {
       return;
     }
 
     setIsCreating(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsCreating(false);
-      toast({
-        title: "Droplet Berhasil Dibuat!",
-        description: `${formData.name} sedang di-deploy. Proses ini membutuhkan beberapa menit.`,
+    try {
+      await createDroplet({
+        name: formData.name,
+        region: formData.region,
+        size: formData.size,
+        image: formData.image,
+        password: formData.password,
       });
       navigate("/dashboard/droplets");
-    }, 2000);
+    } catch (error) {
+      console.error('Failed to create droplet:', error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const selectedSize = sizes.find((s) => s.value === formData.size);
+  const selectedSize = sizes.find((s) => s.slug === formData.size);
+  const availableSizes = sizes.filter(s => 
+    !formData.region || s.regions.includes(formData.region)
+  );
+
+  const regionFlags: Record<string, string> = {
+    'nyc1': '🇺🇸', 'nyc2': '🇺🇸', 'nyc3': '🇺🇸',
+    'sfo1': '🇺🇸', 'sfo2': '🇺🇸', 'sfo3': '🇺🇸',
+    'ams2': '🇳🇱', 'ams3': '🇳🇱',
+    'sgp1': '🇸🇬',
+    'lon1': '🇬🇧',
+    'fra1': '🇩🇪',
+    'tor1': '🇨🇦',
+    'blr1': '🇮🇳',
+    'syd1': '🇦🇺',
+  };
+
+  const formatMemory = (mb: number) => {
+    if (mb >= 1024) return `${mb / 1024} GB`;
+    return `${mb} MB`;
+  };
+
+  if (isLoadingData) {
+    return (
+      <DashboardLayout role="user">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="user">
@@ -136,7 +161,7 @@ const CreateDroplet = () => {
                   id="name"
                   placeholder="contoh: web-server-ku"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
@@ -154,6 +179,7 @@ const CreateDroplet = () => {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="pr-10"
                     required
+                    minLength={8}
                   />
                   <button
                     type="button"
@@ -164,7 +190,7 @@ const CreateDroplet = () => {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ini akan digunakan untuk mengakses droplet via SSH
+                  Minimal 8 karakter. Ini akan digunakan untuk mengakses droplet via SSH.
                 </p>
               </div>
             </CardContent>
@@ -183,20 +209,21 @@ const CreateDroplet = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {regions.map((region) => (
                   <button
-                    key={region.value}
+                    key={region.slug}
                     type="button"
-                    onClick={() => setFormData({ ...formData, region: region.value })}
+                    onClick={() => setFormData({ ...formData, region: region.slug, size: '' })}
                     className={`relative p-4 rounded-lg border-2 text-left transition-all ${
-                      formData.region === region.value
+                      formData.region === region.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    {formData.region === region.value && (
+                    {formData.region === region.slug && (
                       <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
                     )}
-                    <span className="text-2xl">{region.flag}</span>
-                    <p className="font-medium text-foreground mt-1">{region.label}</p>
+                    <span className="text-2xl">{regionFlags[region.slug] || '🌐'}</span>
+                    <p className="font-medium text-foreground mt-1">{region.name}</p>
+                    <p className="text-xs text-muted-foreground">{region.slug}</p>
                   </button>
                 ))}
               </div>
@@ -213,24 +240,29 @@ const CreateDroplet = () => {
               <CardDescription>Pilih spesifikasi untuk droplet Anda</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {sizes.map((size) => (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {availableSizes.slice(0, 15).map((size) => (
                   <button
-                    key={size.value}
+                    key={size.slug}
                     type="button"
-                    onClick={() => setFormData({ ...formData, size: size.value })}
+                    onClick={() => setFormData({ ...formData, size: size.slug })}
                     className={`relative w-full p-4 rounded-lg border-2 text-left transition-all ${
-                      formData.size === size.value
+                      formData.size === size.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    {formData.size === size.value && (
+                    {formData.size === size.slug && (
                       <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary" />
                     )}
                     <div className="pr-8">
-                      <p className="font-semibold text-foreground">{size.label}</p>
-                      <p className="text-sm text-muted-foreground">{size.specs}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-foreground">{size.slug}</p>
+                        <p className="text-sm font-medium text-primary">${size.price_monthly}/bln</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {size.vcpus} vCPU, {formatMemory(size.memory)} RAM, {size.disk} GB SSD
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -238,55 +270,47 @@ const CreateDroplet = () => {
             </CardContent>
           </Card>
 
-          {/* OS */}
+          {/* OS / Image */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <HardDrive className="w-5 h-5 text-primary" />
-                Sistem Operasi
+                Sistem Operasi / Template
               </CardTitle>
-              <CardDescription>Pilih image sistem operasi</CardDescription>
+              <CardDescription>Pilih image sistem operasi atau aplikasi</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={!formData.useApp ? "default" : "outline"}
+                  onClick={() => setFormData({ ...formData, useApp: false, image: '' })}
+                >
+                  Sistem Operasi
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.useApp ? "default" : "outline"}
+                  onClick={() => setFormData({ ...formData, useApp: true, image: '' })}
+                >
+                  Aplikasi (Template)
+                </Button>
+              </div>
+              
               <Select
-                value={formData.os}
-                onValueChange={(value) => setFormData({ ...formData, os: value })}
+                value={formData.image}
+                onValueChange={(value) => setFormData({ ...formData, image: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih sistem operasi" />
+                  <SelectValue placeholder={formData.useApp ? "Pilih aplikasi" : "Pilih sistem operasi"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {operatingSystems.map((os) => (
-                    <SelectItem key={os.value} value={os.value}>
+                  {(formData.useApp ? apps : images).map((img) => (
+                    <SelectItem key={img.id} value={img.slug || img.id.toString()}>
                       <span className="flex items-center gap-2">
-                        <span>{os.icon}</span>
-                        <span>{os.label}</span>
+                        <span>🐧</span>
+                        <span>{img.name} {img.distribution && `(${img.distribution})`}</span>
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Template */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Template (Opsional)</CardTitle>
-              <CardDescription>Pre-install aplikasi dan konfigurasi</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Select
-                value={formData.template}
-                onValueChange={(value) => setFormData({ ...formData, template: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih template (opsional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.value} value={template.value}>
-                      {template.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -300,17 +324,31 @@ const CreateDroplet = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Spesifikasi Terpilih</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {selectedSize?.label || "Belum dipilih"} {selectedSize && `- ${selectedSize.specs}`}
-                  </p>
+                  {selectedSize ? (
+                    <div>
+                      <p className="text-lg font-semibold text-foreground">
+                        {selectedSize.vcpus} vCPU, {formatMemory(selectedSize.memory)} RAM, {selectedSize.disk} GB SSD
+                      </p>
+                      <p className="text-primary font-medium">${selectedSize.price_monthly}/bulan</p>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-semibold text-foreground">Belum dipilih</p>
+                  )}
                 </div>
                 <Button 
                   type="submit" 
                   variant="hero" 
                   size="lg"
-                  disabled={isCreating}
+                  disabled={isCreating || loading || !formData.name || !formData.password || !formData.region || !formData.size || !formData.image}
                 >
-                  {isCreating ? "Membuat..." : "Buat Droplet"}
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Membuat...
+                    </>
+                  ) : (
+                    "Buat Droplet"
+                  )}
                 </Button>
               </div>
             </CardContent>
