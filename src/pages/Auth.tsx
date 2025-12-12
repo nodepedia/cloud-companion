@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Cloud, ArrowLeft, Eye, EyeOff, Lock, User, Key } from "lucide-react";
+import { Cloud, ArrowLeft, Eye, EyeOff, Lock, User, Key, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,6 +20,7 @@ const Auth = () => {
 
   const [formData, setFormData] = useState({
     username: "",
+    email: "",
     password: "",
     inviteKey: "",
   });
@@ -67,7 +68,7 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await signUp(formData.username, formData.password, formData.inviteKey);
+      const { error } = await signUp(formData.username, formData.email, formData.password, formData.inviteKey);
       
       if (error) {
         toast({
@@ -169,6 +170,25 @@ const Auth = () => {
                     </p>
                   )}
                 </div>
+
+                {mode === "register" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="email@example.com"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
