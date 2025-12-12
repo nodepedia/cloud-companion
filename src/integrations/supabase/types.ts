@@ -105,18 +105,21 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_suspended: boolean
           username: string
         }
         Insert: {
           created_at?: string
           email?: string | null
           id: string
+          is_suspended?: boolean
           username: string
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
+          is_suspended?: boolean
           username?: string
         }
         Relationships: []
