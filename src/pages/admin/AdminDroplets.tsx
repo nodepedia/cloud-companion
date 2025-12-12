@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { 
   Server, 
-  Search, 
+  Search,
+  Plus,
   MoreVertical, 
   Power, 
   RefreshCw, 
@@ -171,10 +173,18 @@ const AdminDroplets = () => {
   return (
     <DashboardLayout role="admin">
       <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Semua Droplet</h1>
-          <p className="text-muted-foreground">Kelola semua droplet user</p>
+      {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Semua Droplet</h1>
+            <p className="text-muted-foreground">Kelola semua droplet user</p>
+          </div>
+          <Button asChild>
+            <Link to="/dashboard/droplets/create">
+              <Plus className="w-4 h-4" />
+              Buat Droplet
+            </Link>
+          </Button>
         </div>
 
         {/* Filters */}
