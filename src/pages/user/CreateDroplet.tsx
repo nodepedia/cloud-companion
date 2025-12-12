@@ -35,6 +35,36 @@ interface CreateDropletProps {
   role?: "admin" | "user";
 }
 
+// OS Logo mapping based on distribution
+const getOSLogo = (distribution: string | undefined, name: string): string => {
+  const distro = (distribution || name || '').toLowerCase();
+  
+  if (distro.includes('ubuntu')) return '🟠';
+  if (distro.includes('debian')) return '🔴';
+  if (distro.includes('centos')) return '🟣';
+  if (distro.includes('fedora')) return '🔵';
+  if (distro.includes('rocky')) return '🪨';
+  if (distro.includes('alma')) return '🟢';
+  if (distro.includes('freebsd')) return '😈';
+  if (distro.includes('windows')) return '🪟';
+  if (distro.includes('arch')) return '🔷';
+  if (distro.includes('opensuse') || distro.includes('suse')) return '🦎';
+  
+  // For apps/templates
+  if (distro.includes('docker')) return '🐳';
+  if (distro.includes('wordpress')) return '📝';
+  if (distro.includes('node')) return '💚';
+  if (distro.includes('lamp')) return '💡';
+  if (distro.includes('mysql')) return '🐬';
+  if (distro.includes('postgres')) return '🐘';
+  if (distro.includes('redis')) return '🔺';
+  if (distro.includes('mongo')) return '🍃';
+  if (distro.includes('nginx')) return '🌐';
+  if (distro.includes('apache')) return '🪶';
+  
+  return '💿';
+};
+
 const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   const navigate = useNavigate();
   const { loading, getRegions, getSizes, getImages, getApps, createDroplet } = useDigitalOcean();
@@ -115,9 +145,13 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   };
 
   const selectedSize = sizes.find((s) => s.slug === formData.size);
-  const availableSizes = sizes.filter(s => 
-    !formData.region || s.regions.includes(formData.region)
-  );
+  
+  // Filter only Regular CPU sizes (slugs starting with "s-") and available in selected region
+  const availableSizes = sizes.filter(s => {
+    const isRegular = s.slug.startsWith('s-');
+    const isInRegion = !formData.region || s.regions.includes(formData.region);
+    return isRegular && isInRegion;
+  });
 
   const regionFlags: Record<string, string> = {
     'nyc1': '🇺🇸', 'nyc2': '🇺🇸', 'nyc3': '🇺🇸',
@@ -166,7 +200,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
 
   return (
     <DashboardLayout role={role}>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div>
           <Link 
@@ -191,43 +225,45 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               <CardDescription>Beri nama droplet dan atur root password</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama Droplet</Label>
-                <Input
-                  id="name"
-                  placeholder="contoh: web-server-ku"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Hanya huruf kecil, angka, dan tanda hubung yang diperbolehkan
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Root Password</Label>
-                <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nama Droplet</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Masukkan password yang kuat"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pr-10"
+                    id="name"
+                    placeholder="contoh: web-server-ku"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                     required
-                    minLength={8}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  <p className="text-xs text-muted-foreground">
+                    Hanya huruf kecil, angka, dan tanda hubung
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Minimal 8 karakter. Ini akan digunakan untuk mengakses droplet via SSH.
-                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Root Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Masukkan password yang kuat"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="pr-10"
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Minimal 8 karakter untuk akses SSH
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -242,57 +278,57 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               <CardDescription>Pilih lokasi data center</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                 {regions.map((region) => (
                   <button
                     key={region.slug}
                     type="button"
                     onClick={() => setFormData({ ...formData, region: region.slug, size: '' })}
-                    className={`relative p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`relative p-3 rounded-lg border-2 text-center transition-all ${
                       formData.region === region.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
                     {formData.region === region.slug && (
-                      <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
+                      <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
                     )}
-                    <span className="text-2xl">{regionFlags[region.slug] || '🌐'}</span>
-                    <p className="font-medium text-foreground mt-1">{formatRegion(region.slug)}</p>
+                    <span className="text-xl">{regionFlags[region.slug] || '🌐'}</span>
+                    <p className="font-medium text-foreground text-sm mt-1">{formatRegion(region.slug)}</p>
                   </button>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Size */}
+          {/* Size / Spesifikasi */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-primary" />
-                Ukuran
+                Spesifikasi
               </CardTitle>
-              <CardDescription>Pilih spesifikasi untuk droplet Anda</CardDescription>
+              <CardDescription>Pilih spesifikasi CPU, RAM, dan Storage</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
-                {availableSizes.slice(0, 15).map((size) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {availableSizes.slice(0, 20).map((size) => (
                   <button
                     key={size.slug}
                     type="button"
                     onClick={() => setFormData({ ...formData, size: size.slug })}
-                    className={`relative p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`relative p-3 rounded-lg border-2 text-left transition-all ${
                       formData.size === size.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
                     {formData.size === size.slug && (
-                      <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
+                      <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
                     )}
                     <p className="font-semibold text-foreground">{size.vcpus} vCPU</p>
-                    <p className="text-sm text-muted-foreground">{formatMemory(size.memory)} RAM</p>
-                    <p className="text-sm text-muted-foreground">{size.disk} GB SSD</p>
+                    <p className="text-sm text-muted-foreground">{formatMemory(size.memory)}</p>
+                    <p className="text-sm text-muted-foreground">{size.disk} GB</p>
                   </button>
                 ))}
               </div>
@@ -309,10 +345,11 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               <CardDescription>Pilih image sistem operasi atau aplikasi</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant={!formData.useApp ? "default" : "outline"}
+                  size="sm"
                   onClick={() => {
                     setFormData({ ...formData, useApp: false, image: '' });
                     setImageSearch("");
@@ -323,6 +360,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                 <Button
                   type="button"
                   variant={formData.useApp ? "default" : "outline"}
+                  size="sm"
                   onClick={() => {
                     setFormData({ ...formData, useApp: true, image: '' });
                     setImageSearch("");
@@ -333,7 +371,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               </div>
               
               {/* Search Input */}
-              <div className="relative">
+              <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder={formData.useApp ? "Cari aplikasi..." : "Cari sistem operasi..."}
@@ -344,7 +382,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               </div>
 
               {/* Image Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[350px] overflow-y-auto">
                 {filteredImages.map((img) => {
                   const imgValue = img.slug || img.id.toString();
                   return (
@@ -359,15 +397,12 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                       }`}
                     >
                       {formData.image === imgValue && (
-                        <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
+                        <CheckCircle className="absolute top-1 right-1 w-3 h-3 text-primary" />
                       )}
-                      <span className="text-xl">🐧</span>
-                      <p className="font-medium text-foreground text-sm mt-1 pr-5">
+                      <span className="text-xl">{getOSLogo(img.distribution, img.name)}</span>
+                      <p className="font-medium text-foreground text-sm mt-1 pr-4 truncate">
                         {formatImage(img.slug || img.name)}
                       </p>
-                      {img.distribution && (
-                        <p className="text-xs text-muted-foreground">{img.distribution}</p>
-                      )}
                     </button>
                   );
                 })}
@@ -382,7 +417,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
 
           {/* Summary & Submit */}
           <Card className="bg-accent/50">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Spesifikasi Terpilih</p>
@@ -424,7 +459,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                 <ul className="list-disc list-inside space-y-1 mt-2">
                   <li><strong>Nama:</strong> {formData.name}</li>
                   <li><strong>Region:</strong> {formatRegion(formData.region)}</li>
-                  <li><strong>Ukuran:</strong> {selectedSize ? `${selectedSize.vcpus} vCPU, ${formatMemory(selectedSize.memory)} RAM, ${selectedSize.disk} GB SSD` : '-'}</li>
+                  <li><strong>Spesifikasi:</strong> {selectedSize ? `${selectedSize.vcpus} vCPU, ${formatMemory(selectedSize.memory)} RAM, ${selectedSize.disk} GB SSD` : '-'}</li>
                   <li><strong>Image:</strong> {selectedImage ? formatImage(selectedImage.slug || selectedImage.name) : '-'}</li>
                 </ul>
                 <p className="mt-4">Lanjutkan pembuatan droplet?</p>
