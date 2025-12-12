@@ -9,9 +9,11 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  Ticket
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,26 +24,48 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut, user, role: userRole, isLoading } = useAuth();
+
+  // Redirect if not authenticated or wrong role
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    } else if (!isLoading && userRole && userRole !== role) {
+      navigate(userRole === 'admin' ? '/admin' : '/dashboard');
+    }
+  }, [isLoading, user, userRole, role, navigate]);
 
   const adminLinks = [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/admin/droplets", icon: Server, label: "Semua Droplet" },
     { to: "/admin/users", icon: Users, label: "User" },
     { to: "/admin/api-keys", icon: Key, label: "API Key" },
-    { to: "/admin/settings", icon: Settings, label: "Pengaturan" },
+    { to: "/admin/invite-keys", icon: Ticket, label: "Invite Key" },
   ];
 
   const userLinks = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/dashboard/droplets", icon: Server, label: "Droplet Saya" },
-    { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
   ];
 
   const links = role === "admin" ? adminLinks : userLinks;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user || (userRole && userRole !== role)) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,11 +97,9 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
             <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-md">
               <Cloud className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div>
-              <span className="font-semibold text-foreground">CloudManager</span>
-              <p className="text-xs text-muted-foreground">
-                {role === "admin" ? "Panel Admin" : "Panel User"}
-              </p>
+            <div className="flex flex-col">
+              <span className="font-semibold text-foreground leading-tight">CloudManager</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">by BelajarNode</span>
             </div>
           </div>
 

@@ -18,7 +18,10 @@ const Navbar = () => {
             <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
               <Cloud className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-foreground">CloudManager</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold text-foreground leading-tight">CloudManager</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">by BelajarNode</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
