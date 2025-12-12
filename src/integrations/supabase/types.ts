@@ -68,27 +68,33 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          current_uses: number
           id: string
           is_active: boolean
           key: string
+          max_uses: number
           used_at: string | null
           used_by: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          current_uses?: number
           id?: string
           is_active?: boolean
           key: string
+          max_uses?: number
           used_at?: string | null
           used_by?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          current_uses?: number
           id?: string
           is_active?: boolean
           key?: string
+          max_uses?: number
           used_at?: string | null
           used_by?: string | null
         }
@@ -138,6 +144,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_limits: {
+        Row: {
+          allowed_sizes: string[]
+          auto_destroy_days: number
+          created_at: string
+          id: string
+          max_droplets: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed_sizes?: string[]
+          auto_destroy_days?: number
+          created_at?: string
+          id?: string
+          max_droplets?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed_sizes?: string[]
+          auto_destroy_days?: number
+          created_at?: string
+          id?: string
+          max_droplets?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
