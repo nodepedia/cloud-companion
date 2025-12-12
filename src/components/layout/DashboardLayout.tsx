@@ -4,13 +4,11 @@ import {
   Cloud, 
   LayoutDashboard, 
   Server, 
-  Key, 
   Users, 
   Settings, 
   LogOut,
   Menu,
-  X,
-  Ticket
+  X
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,15 +37,13 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/admin/droplets", icon: Server, label: "Semua Droplet" },
     { to: "/admin/users", icon: Users, label: "User" },
-    { to: "/admin/api-keys", icon: Key, label: "API Key" },
-    { to: "/admin/invite-keys", icon: Ticket, label: "Invite Key" },
-    { to: "/admin/settings", icon: Settings, label: "Pengaturan" },
+    { to: "/admin/settings", icon: Settings, label: "Setting" },
   ];
 
   const userLinks = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/dashboard/droplets", icon: Server, label: "Droplet Saya" },
-    { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
+    { to: "/dashboard/settings", icon: Settings, label: "Setting" },
   ];
 
   const links = role === "admin" ? adminLinks : userLinks;
