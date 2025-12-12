@@ -84,7 +84,7 @@ const AdminUsers = () => {
   const handleAction = (action: string, userName: string) => {
     toast({
       title: `${action}`,
-      description: `${action} for ${userName}`,
+      description: `${action} untuk ${userName}`,
     });
   };
 
@@ -93,8 +93,8 @@ const AdminUsers = () => {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Users</h1>
-          <p className="text-muted-foreground">Manage all registered users</p>
+          <h1 className="text-2xl font-bold text-foreground">User</h1>
+          <p className="text-muted-foreground">Kelola semua user terdaftar</p>
         </div>
 
         {/* Stats */}
@@ -107,7 +107,7 @@ const AdminUsers = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{users.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-sm text-muted-foreground">Total User</p>
                 </div>
               </div>
             </CardContent>
@@ -120,7 +120,7 @@ const AdminUsers = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{users.filter((u) => u.status === "active").length}</p>
-                  <p className="text-sm text-muted-foreground">Active Users</p>
+                  <p className="text-sm text-muted-foreground">User Aktif</p>
                 </div>
               </div>
             </CardContent>
@@ -133,7 +133,7 @@ const AdminUsers = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{users.reduce((sum, u) => sum + u.dropletsCount, 0)}</p>
-                  <p className="text-sm text-muted-foreground">Total Droplets</p>
+                  <p className="text-sm text-muted-foreground">Total Droplet</p>
                 </div>
               </div>
             </CardContent>
@@ -146,7 +146,7 @@ const AdminUsers = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search users by name or email..."
+                placeholder="Cari user berdasarkan nama atau email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -172,7 +172,7 @@ const AdminUsers = () => {
                         <h3 className="font-semibold text-foreground">{user.name}</h3>
                         {user.status === "suspended" && (
                           <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
-                            Suspended
+                            Ditangguhkan
                           </span>
                         )}
                       </div>
@@ -183,11 +183,11 @@ const AdminUsers = () => {
                         </span>
                         <span className="flex items-center gap-1">
                           <Server className="w-3 h-3" />
-                          {user.dropletsCount} droplets
+                          {user.dropletsCount} droplet
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          Joined {user.joinedAt}
+                          Bergabung {user.joinedAt}
                         </span>
                       </div>
                     </div>
@@ -199,22 +199,22 @@ const AdminUsers = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleAction("View droplets", user.name)}>
+                      <DropdownMenuItem onClick={() => handleAction("Lihat droplet", user.name)}>
                         <Server className="w-4 h-4 mr-2" />
-                        View Droplets
+                        Lihat Droplet
                       </DropdownMenuItem>
                       {user.status === "active" ? (
                         <DropdownMenuItem 
                           className="text-destructive"
-                          onClick={() => handleAction("Suspend user", user.name)}
+                          onClick={() => handleAction("Tangguhkan user", user.name)}
                         >
                           <Ban className="w-4 h-4 mr-2" />
-                          Suspend User
+                          Tangguhkan User
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem onClick={() => handleAction("Activate user", user.name)}>
+                        <DropdownMenuItem onClick={() => handleAction("Aktifkan user", user.name)}>
                           <UserCheck className="w-4 h-4 mr-2" />
-                          Activate User
+                          Aktifkan User
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -229,9 +229,9 @@ const AdminUsers = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No Users Found</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Tidak Ada User Ditemukan</h3>
               <p className="text-muted-foreground">
-                No users match your search query.
+                Tidak ada user yang sesuai dengan pencarian Anda.
               </p>
             </CardContent>
           </Card>

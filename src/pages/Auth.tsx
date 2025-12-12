@@ -33,14 +33,14 @@ const Auth = () => {
       // Demo: check if admin login
       if (formData.email === "admin@demo.com" && formData.password === "admin123") {
         toast({
-          title: "Welcome Admin!",
-          description: "Redirecting to admin dashboard...",
+          title: "Selamat Datang Admin!",
+          description: "Mengalihkan ke dashboard admin...",
         });
         navigate("/admin");
       } else {
         toast({
-          title: mode === "login" ? "Welcome back!" : "Account created!",
-          description: "Redirecting to your dashboard...",
+          title: mode === "login" ? "Selamat Datang Kembali!" : "Akun Berhasil Dibuat!",
+          description: "Mengalihkan ke dashboard Anda...",
         });
         navigate("/dashboard");
       }
@@ -63,7 +63,7 @@ const Auth = () => {
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Home</span>
+          <span>Kembali ke Beranda</span>
         </Link>
       </div>
 
@@ -78,18 +78,18 @@ const Auth = () => {
               </div>
             </Link>
             <h1 className="mt-4 text-2xl font-bold text-foreground">CloudManager</h1>
-            <p className="text-muted-foreground">Cloud Learning Platform</p>
+            <p className="text-muted-foreground">Platform Belajar Cloud</p>
           </div>
 
           <Card className="border-2">
             <CardHeader className="text-center">
               <CardTitle className="text-xl">
-                {mode === "login" ? "Welcome Back" : "Create Account"}
+                {mode === "login" ? "Selamat Datang Kembali" : "Buat Akun"}
               </CardTitle>
               <CardDescription>
                 {mode === "login" 
-                  ? "Sign in to manage your cloud servers" 
-                  : "Start your cloud learning journey"
+                  ? "Masuk untuk mengelola cloud server Anda" 
+                  : "Mulai perjalanan belajar cloud Anda"
                 }
               </CardDescription>
             </CardHeader>
@@ -97,7 +97,7 @@ const Auth = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === "register" && (
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name">Nama Lengkap</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
@@ -122,7 +122,7 @@ const Auth = () => {
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder="anda@contoh.com"
                       value={formData.email}
                       onChange={handleInputChange}
                       className="pl-10"
@@ -162,19 +162,19 @@ const Auth = () => {
                   size="lg"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
+                  {isLoading ? "Mohon tunggu..." : mode === "login" ? "Masuk" : "Buat Akun"}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+                  {mode === "login" ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
                   <button
                     type="button"
                     onClick={() => setMode(mode === "login" ? "register" : "login")}
                     className="text-primary font-medium hover:underline"
                   >
-                    {mode === "login" ? "Sign up" : "Sign in"}
+                    {mode === "login" ? "Daftar" : "Masuk"}
                   </button>
                 </p>
               </div>
@@ -182,7 +182,7 @@ const Auth = () => {
               {/* Demo credentials hint */}
               <div className="mt-6 p-4 rounded-lg bg-accent/50 border">
                 <p className="text-xs text-center text-muted-foreground">
-                  <strong>Demo:</strong> Use <code className="bg-secondary px-1 rounded">admin@demo.com</code> / <code className="bg-secondary px-1 rounded">admin123</code> for admin access
+                  <strong>Demo:</strong> Gunakan <code className="bg-secondary px-1 rounded">admin@demo.com</code> / <code className="bg-secondary px-1 rounded">admin123</code> untuk akses admin
                 </p>
               </div>
             </CardContent>

@@ -25,16 +25,16 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
 
   const adminLinks = [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/admin/droplets", icon: Server, label: "All Droplets" },
-    { to: "/admin/users", icon: Users, label: "Users" },
-    { to: "/admin/api-keys", icon: Key, label: "API Keys" },
-    { to: "/admin/settings", icon: Settings, label: "Settings" },
+    { to: "/admin/droplets", icon: Server, label: "Semua Droplet" },
+    { to: "/admin/users", icon: Users, label: "User" },
+    { to: "/admin/api-keys", icon: Key, label: "API Key" },
+    { to: "/admin/settings", icon: Settings, label: "Pengaturan" },
   ];
 
   const userLinks = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/dashboard/droplets", icon: Server, label: "My Droplets" },
-    { to: "/dashboard/settings", icon: Settings, label: "Settings" },
+    { to: "/dashboard/droplets", icon: Server, label: "Droplet Saya" },
+    { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
   ];
 
   const links = role === "admin" ? adminLinks : userLinks;
@@ -75,7 +75,9 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
             </div>
             <div>
               <span className="font-semibold text-foreground">CloudManager</span>
-              <p className="text-xs text-muted-foreground capitalize">{role} Panel</p>
+              <p className="text-xs text-muted-foreground">
+                {role === "admin" ? "Panel Admin" : "Panel User"}
+              </p>
             </div>
           </div>
 
@@ -109,7 +111,7 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
               onClick={handleLogout}
             >
               <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              <span>Keluar</span>
             </Button>
           </div>
         </div>

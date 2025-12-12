@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +13,9 @@ import {
 
 const UserDashboard = () => {
   const stats = [
-    { label: "My Droplets", value: "2", icon: Server },
-    { label: "Running", value: "1", icon: CheckCircle, color: "text-success" },
-    { label: "Stopped", value: "1", icon: AlertCircle, color: "text-muted-foreground" },
+    { label: "Droplet Saya", value: "2", icon: Server },
+    { label: "Berjalan", value: "1", icon: CheckCircle, color: "text-success" },
+    { label: "Berhenti", value: "1", icon: AlertCircle, color: "text-muted-foreground" },
   ];
 
   const droplets = [
@@ -51,6 +50,19 @@ const UserDashboard = () => {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "running":
+        return "Berjalan";
+      case "stopped":
+        return "Berhenti";
+      case "creating":
+        return "Membuat";
+      default:
+        return status;
+    }
+  };
+
   return (
     <DashboardLayout role="user">
       <div className="space-y-8">
@@ -58,12 +70,12 @@ const UserDashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back! Manage your cloud servers.</p>
+            <p className="text-muted-foreground">Selamat datang! Kelola cloud server Anda.</p>
           </div>
           <Button asChild>
             <Link to="/dashboard/droplets/create">
               <Plus className="w-4 h-4" />
-              Create Droplet
+              Buat Droplet
             </Link>
           </Button>
         </div>
@@ -96,15 +108,15 @@ const UserDashboard = () => {
                   <Server className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Create a New Droplet</h3>
+                  <h3 className="font-semibold text-foreground">Buat Droplet Baru</h3>
                   <p className="text-sm text-muted-foreground">
-                    Deploy your own cloud server in minutes
+                    Deploy cloud server Anda sendiri dalam hitungan menit
                   </p>
                 </div>
               </div>
               <Button variant="hero" asChild>
                 <Link to="/dashboard/droplets/create">
-                  Get Started
+                  Mulai
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
@@ -116,25 +128,25 @@ const UserDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg">My Droplets</CardTitle>
-              <CardDescription>Your cloud servers</CardDescription>
+              <CardTitle className="text-lg">Droplet Saya</CardTitle>
+              <CardDescription>Cloud server Anda</CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/dashboard/droplets">View All</Link>
+              <Link to="/dashboard/droplets">Lihat Semua</Link>
             </Button>
           </CardHeader>
           <CardContent>
             {droplets.length === 0 ? (
               <div className="py-8 text-center">
                 <Server className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No Droplets Yet</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">Belum Ada Droplet</h3>
                 <p className="text-muted-foreground mb-4">
-                  Create your first droplet to get started
+                  Buat droplet pertama Anda untuk memulai
                 </p>
                 <Button asChild>
                   <Link to="/dashboard/droplets/create">
                     <Plus className="w-4 h-4" />
-                    Create Droplet
+                    Buat Droplet
                   </Link>
                 </Button>
               </div>
@@ -154,7 +166,7 @@ const UserDashboard = () => {
                           <h4 className="font-medium text-foreground">{droplet.name}</h4>
                           <span className="flex items-center gap-1 text-xs">
                             {getStatusIcon(droplet.status)}
-                            <span className="capitalize">{droplet.status}</span>
+                            <span>{getStatusLabel(droplet.status)}</span>
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
