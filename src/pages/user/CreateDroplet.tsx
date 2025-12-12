@@ -26,9 +26,15 @@ import {
 import { Link } from "react-router-dom";
 import { useDigitalOcean, DORegion, DOSize, DOImage } from "@/hooks/useDigitalOcean";
 
-const CreateDroplet = () => {
+interface CreateDropletProps {
+  role?: "admin" | "user";
+}
+
+const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   const navigate = useNavigate();
   const { loading, getRegions, getSizes, getImages, getApps, createDroplet } = useDigitalOcean();
+  const isAdmin = role === "admin";
+  const basePath = isAdmin ? "/admin" : "/dashboard";
   
   const [isCreating, setIsCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -88,7 +94,7 @@ const CreateDroplet = () => {
         image: formData.image,
         password: formData.password,
       });
-      navigate("/dashboard/droplets");
+      navigate(`${basePath}/droplets`);
     } catch (error) {
       console.error('Failed to create droplet:', error);
     } finally {
@@ -120,7 +126,7 @@ const CreateDroplet = () => {
 
   if (isLoadingData) {
     return (
-      <DashboardLayout role="user">
+      <DashboardLayout role={role}>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -129,12 +135,12 @@ const CreateDroplet = () => {
   }
 
   return (
-    <DashboardLayout role="user">
+    <DashboardLayout role={role}>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div>
           <Link 
-            to="/dashboard/droplets" 
+            to={`${basePath}/droplets`} 
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

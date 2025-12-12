@@ -180,7 +180,7 @@ const AdminDroplets = () => {
             <p className="text-muted-foreground">Kelola semua droplet user</p>
           </div>
           <Button asChild>
-            <Link to="/dashboard/droplets/create">
+            <Link to="/admin/droplets/create">
               <Plus className="w-4 h-4" />
               Buat Droplet
             </Link>
