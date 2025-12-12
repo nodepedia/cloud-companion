@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      droplets: {
+        Row: {
+          created_at: string
+          digitalocean_id: number | null
+          id: string
+          image: string
+          ip_address: string | null
+          name: string
+          region: string
+          size: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          digitalocean_id?: number | null
+          id?: string
+          image: string
+          ip_address?: string | null
+          name: string
+          region: string
+          size: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          digitalocean_id?: number | null
+          id?: string
+          image?: string
+          ip_address?: string | null
+          name?: string
+          region?: string
+          size?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invite_keys: {
         Row: {
           created_at: string
