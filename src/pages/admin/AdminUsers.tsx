@@ -56,7 +56,7 @@ interface UserWithLimits {
   email: string | null;
   created_at: string;
   dropletsCount: number;
-  status: "active" | "suspended";
+  is_suspended: boolean;
   limits?: {
     max_droplets: number;
     allowed_sizes: string[];
@@ -132,7 +132,7 @@ const AdminUsers = () => {
           email: profile.email,
           created_at: profile.created_at,
           dropletsCount: count || 0,
-          status: "active" as const,
+          is_suspended: (profile as any).is_suspended || false,
           limits: limits || undefined,
         };
       })
@@ -267,6 +267,24 @@ const AdminUsers = () => {
     toast({ title: "Disalin!", description: "Invite key berhasil disalin" });
   };
 
+  const toggleUserSuspend = async (user: UserWithLimits) => {
+    const newStatus = !user.is_suspended;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_suspended: newStatus } as any)
+      .eq('id', user.id);
+
+    if (error) {
+      toast({ title: "Error", description: "Gagal mengubah status user", variant: "destructive" });
+    } else {
+      toast({ 
+        title: "Berhasil", 
+        description: newStatus ? "User berhasil di-suspend" : "User berhasil diaktifkan kembali" 
+      });
+      await fetchUsers();
+    }
+  };
+
   const activeKeys = inviteKeys.filter(k => k.is_active && k.current_uses < k.max_uses);
 
   if (isLoading) {
@@ -375,6 +393,11 @@ const AdminUsers = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-foreground">{user.username}</h3>
+                        {user.is_suspended && (
+                          <Badge variant="destructive" className="text-xs">
+                            Suspended
+                          </Badge>
+                        )}
                         {user.limits && (
                           <Badge variant="outline" className="text-xs">
                             Max {user.limits.max_droplets} droplet
@@ -407,6 +430,19 @@ const AdminUsers = () => {
                       <DropdownMenuItem onClick={() => openLimitsDialog(user)}>
                         <Settings className="w-4 h-4 mr-2" />
                         Atur Limitasi
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleUserSuspend(user)}>
+                        {user.is_suspended ? (
+                          <>
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            Aktifkan User
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-4 h-4 mr-2" />
+                            Suspend User
+                          </>
+                        )}
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Server className="w-4 h-4 mr-2" />

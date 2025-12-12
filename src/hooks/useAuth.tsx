@@ -95,13 +95,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error('Username atau password salah') };
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
         return { error: new Error('Username atau password salah') };
+      }
+
+      // Check if user is suspended
+      if (authData.user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('is_suspended')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+
+        if ((profileData as any)?.is_suspended) {
+          // Sign out the suspended user immediately
+          await supabase.auth.signOut();
+          return { error: new Error('Akun Anda telah di-suspend. Hubungi admin untuk informasi lebih lanjut.') };
+        }
       }
       
       return { error: null };
