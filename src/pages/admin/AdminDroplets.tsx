@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
+import DropletIPCountdown from "@/components/DropletIPCountdown";
 
 const AdminDroplets = () => {
   const { toast } = useToast();
@@ -316,16 +317,11 @@ const AdminDroplets = () => {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Alamat IP</p>
-                      {droplet.ip_address ? (
-                        <button 
-                          onClick={() => handleCopyIP(droplet.ip_address!)}
-                          className="font-medium font-mono hover:text-primary transition-colors"
-                        >
-                          {droplet.ip_address}
-                        </button>
-                      ) : (
-                        <p className="text-muted-foreground italic">Pending...</p>
-                      )}
+                      <DropletIPCountdown 
+                        ipAddress={droplet.ip_address}
+                        createdAt={droplet.created_at}
+                        onCopyIP={handleCopyIP}
+                      />
                     </div>
                   </div>
                 </CardContent>

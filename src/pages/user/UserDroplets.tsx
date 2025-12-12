@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Clock,
   MapPin,
-  Terminal,
   Copy,
   Loader2
 } from "lucide-react";
@@ -36,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
+import DropletIPCountdown from "@/components/DropletIPCountdown";
 
 const UserDroplets = () => {
   const { toast } = useToast();
@@ -257,21 +257,16 @@ const UserDroplets = () => {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Alamat IP</p>
-                      {droplet.ip_address ? (
-                        <button 
-                          onClick={() => handleCopyIP(droplet.ip_address!)}
-                          className="font-medium font-mono hover:text-primary transition-colors"
-                        >
-                          {droplet.ip_address}
-                        </button>
-                      ) : (
-                        <p className="text-muted-foreground italic">Pending...</p>
-                      )}
+                      <DropletIPCountdown 
+                        ipAddress={droplet.ip_address}
+                        createdAt={droplet.created_at}
+                        onCopyIP={handleCopyIP}
+                      />
                     </div>
                   </div>
 
-                  {/* SSH Command */}
-                  {droplet.ip_address && (
+                  {/* SSH Command - only show after countdown */}
+                  {droplet.ip_address && (Date.now() - new Date(droplet.created_at).getTime() > 3 * 60 * 1000) && (
                     <div className="mt-4 p-3 rounded-lg bg-secondary">
                       <p className="text-xs text-muted-foreground mb-1">Perintah SSH</p>
                       <code className="text-sm font-mono text-foreground">
