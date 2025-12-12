@@ -39,6 +39,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -105,6 +115,8 @@ const AdminUsers = () => {
   const [savingLimits, setSavingLimits] = useState(false);
   const [newKeyMaxUses, setNewKeyMaxUses] = useState(1);
   const [showCreateKeyDialog, setShowCreateKeyDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [newKeyForm, setNewKeyForm] = useState({
     customKey: "",
     useRandomKey: true,
@@ -319,6 +331,54 @@ const AdminUsers = () => {
     }
   };
 
+  const deleteUser = async () => {
+    if (!selectedUser) return;
+    setIsDeletingUser(true);
+
+    try {
+      // Delete user's droplets first
+      const { error: dropletsError } = await supabase
+        .from('droplets')
+        .delete()
+        .eq('user_id', selectedUser.id);
+
+      if (dropletsError) {
+        console.error('Error deleting droplets:', dropletsError);
+      }
+
+      // Delete user limits
+      await supabase
+        .from('user_limits')
+        .delete()
+        .eq('user_id', selectedUser.id);
+
+      // Delete user role
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', selectedUser.id);
+
+      // Delete profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', selectedUser.id);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      toast({ title: "Berhasil", description: "User berhasil dihapus" });
+      setShowDeleteDialog(false);
+      setSelectedUser(null);
+      await fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: "Gagal menghapus user: " + error.message, variant: "destructive" });
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
   const activeKeys = inviteKeys.filter(k => k.is_active && k.current_uses < k.max_uses);
 
   if (isLoading) {
@@ -481,6 +541,16 @@ const AdminUsers = () => {
                       <DropdownMenuItem>
                         <Server className="w-4 h-4 mr-2" />
                         Lihat Droplet
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowDeleteDialog(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Hapus User
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -777,6 +847,30 @@ const AdminUsers = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus user <strong>{selectedUser?.username}</strong>? 
+              Semua data termasuk droplet, limitasi, dan role akan dihapus secara permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingUser}>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={deleteUser} 
+              disabled={isDeletingUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingUser && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Hapus User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
