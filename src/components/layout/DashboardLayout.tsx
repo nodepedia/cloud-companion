@@ -41,11 +41,13 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
     { to: "/admin/users", icon: Users, label: "User" },
     { to: "/admin/api-keys", icon: Key, label: "API Key" },
     { to: "/admin/invite-keys", icon: Ticket, label: "Invite Key" },
+    { to: "/admin/settings", icon: Settings, label: "Pengaturan" },
   ];
 
   const userLinks = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/dashboard/droplets", icon: Server, label: "Droplet Saya" },
+    { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
   ];
 
   const links = role === "admin" ? adminLinks : userLinks;
