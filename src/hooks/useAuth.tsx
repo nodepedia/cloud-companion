@@ -87,8 +87,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (usernameInput: string, password: string) => {
     try {
-      // Get email from username (we use username@cloudmanager.local as fake email)
-      const fakeEmail = `${usernameInput.toLowerCase()}@cloudmanager.local`;
+      // Get email from username (we use username@cloudmanager.app as fake email)
+      const fakeEmail = `${usernameInput.toLowerCase()}@cloudmanager.app`;
       
       const { error } = await supabase.auth.signInWithPassword({
         email: fakeEmail,
@@ -136,8 +136,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error('Username sudah digunakan') };
       }
 
-      // Create user with fake email (username@cloudmanager.local)
-      const fakeEmail = `${usernameInput.toLowerCase()}@cloudmanager.local`;
+      // Create user with fake email (username@cloudmanager.app)
+      const fakeEmail = `${usernameInput.toLowerCase()}@cloudmanager.app`;
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: fakeEmail,
