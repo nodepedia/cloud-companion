@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Server, 
   MapPin, 
@@ -21,10 +24,12 @@ import {
   EyeOff,
   CheckCircle,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Search
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDigitalOcean, DORegion, DOSize, DOImage } from "@/hooks/useDigitalOcean";
+import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
 
 interface CreateDropletProps {
   role?: "admin" | "user";
@@ -39,6 +44,8 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [imageSearch, setImageSearch] = useState("");
 
   const [regions, setRegions] = useState<DORegion[]>([]);
   const [sizes, setSizes] = useState<DOSize[]>([]);
@@ -77,13 +84,18 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
     loadData();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.password || !formData.region || !formData.size || !formData.image) {
       return;
     }
 
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    setShowConfirmDialog(false);
     setIsCreating(true);
 
     try {
@@ -123,6 +135,24 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
     if (mb >= 1024) return `${mb / 1024} GB`;
     return `${mb} MB`;
   };
+
+  // Combined and filtered OS/App list
+  const filteredImages = useMemo(() => {
+    const allItems = formData.useApp ? apps : images;
+    if (!imageSearch.trim()) return allItems;
+    
+    const search = imageSearch.toLowerCase();
+    return allItems.filter(img => 
+      img.name.toLowerCase().includes(search) ||
+      (img.distribution && img.distribution.toLowerCase().includes(search)) ||
+      (img.slug && img.slug.toLowerCase().includes(search))
+    );
+  }, [formData.useApp, apps, images, imageSearch]);
+
+  const selectedImage = useMemo(() => {
+    const allItems = formData.useApp ? apps : images;
+    return allItems.find(img => (img.slug || img.id.toString()) === formData.image);
+  }, [formData.image, formData.useApp, apps, images]);
 
   if (isLoadingData) {
     return (
@@ -228,8 +258,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                       <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
                     )}
                     <span className="text-2xl">{regionFlags[region.slug] || '🌐'}</span>
-                    <p className="font-medium text-foreground mt-1">{region.name}</p>
-                    <p className="text-xs text-muted-foreground">{region.slug}</p>
+                    <p className="font-medium text-foreground mt-1">{formatRegion(region.slug)}</p>
                   </button>
                 ))}
               </div>
@@ -246,30 +275,24 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
               <CardDescription>Pilih spesifikasi untuk droplet Anda</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
                 {availableSizes.slice(0, 15).map((size) => (
                   <button
                     key={size.slug}
                     type="button"
                     onClick={() => setFormData({ ...formData, size: size.slug })}
-                    className={`relative w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`relative p-4 rounded-lg border-2 text-left transition-all ${
                       formData.size === size.slug
                         ? "border-primary bg-accent"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
                     {formData.size === size.slug && (
-                      <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary" />
+                      <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
                     )}
-                    <div className="pr-8">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-foreground">{size.slug}</p>
-                        <p className="text-sm font-medium text-primary">${size.price_monthly}/bln</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {size.vcpus} vCPU, {formatMemory(size.memory)} RAM, {size.disk} GB SSD
-                      </p>
-                    </div>
+                    <p className="font-semibold text-foreground">{size.vcpus} vCPU</p>
+                    <p className="text-sm text-muted-foreground">{formatMemory(size.memory)} RAM</p>
+                    <p className="text-sm text-muted-foreground">{size.disk} GB SSD</p>
                   </button>
                 ))}
               </div>
@@ -290,37 +313,70 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                 <Button
                   type="button"
                   variant={!formData.useApp ? "default" : "outline"}
-                  onClick={() => setFormData({ ...formData, useApp: false, image: '' })}
+                  onClick={() => {
+                    setFormData({ ...formData, useApp: false, image: '' });
+                    setImageSearch("");
+                  }}
                 >
                   Sistem Operasi
                 </Button>
                 <Button
                   type="button"
                   variant={formData.useApp ? "default" : "outline"}
-                  onClick={() => setFormData({ ...formData, useApp: true, image: '' })}
+                  onClick={() => {
+                    setFormData({ ...formData, useApp: true, image: '' });
+                    setImageSearch("");
+                  }}
                 >
                   Aplikasi (Template)
                 </Button>
               </div>
               
-              <Select
-                value={formData.image}
-                onValueChange={(value) => setFormData({ ...formData, image: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={formData.useApp ? "Pilih aplikasi" : "Pilih sistem operasi"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(formData.useApp ? apps : images).map((img) => (
-                    <SelectItem key={img.id} value={img.slug || img.id.toString()}>
-                      <span className="flex items-center gap-2">
-                        <span>🐧</span>
-                        <span>{img.name} {img.distribution && `(${img.distribution})`}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={formData.useApp ? "Cari aplikasi..." : "Cari sistem operasi..."}
+                  value={imageSearch}
+                  onChange={(e) => setImageSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Image Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto">
+                {filteredImages.map((img) => {
+                  const imgValue = img.slug || img.id.toString();
+                  return (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, image: imgValue })}
+                      className={`relative p-3 rounded-lg border-2 text-left transition-all ${
+                        formData.image === imgValue
+                          ? "border-primary bg-accent"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {formData.image === imgValue && (
+                        <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-primary" />
+                      )}
+                      <span className="text-xl">🐧</span>
+                      <p className="font-medium text-foreground text-sm mt-1 pr-5">
+                        {formatImage(img.slug || img.name)}
+                      </p>
+                      {img.distribution && (
+                        <p className="text-xs text-muted-foreground">{img.distribution}</p>
+                      )}
+                    </button>
+                  );
+                })}
+                {filteredImages.length === 0 && (
+                  <p className="col-span-full text-center text-muted-foreground py-4">
+                    Tidak ada hasil untuk "{imageSearch}"
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -331,12 +387,9 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
                 <div>
                   <p className="text-sm text-muted-foreground">Spesifikasi Terpilih</p>
                   {selectedSize ? (
-                    <div>
-                      <p className="text-lg font-semibold text-foreground">
-                        {selectedSize.vcpus} vCPU, {formatMemory(selectedSize.memory)} RAM, {selectedSize.disk} GB SSD
-                      </p>
-                      <p className="text-primary font-medium">${selectedSize.price_monthly}/bulan</p>
-                    </div>
+                    <p className="text-lg font-semibold text-foreground">
+                      {selectedSize.vcpus} vCPU, {formatMemory(selectedSize.memory)} RAM, {selectedSize.disk} GB SSD
+                    </p>
                   ) : (
                     <p className="text-lg font-semibold text-foreground">Belum dipilih</p>
                   )}
@@ -360,6 +413,29 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
             </CardContent>
           </Card>
         </form>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Konfirmasi Pembuatan Droplet</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>Anda akan membuat droplet dengan spesifikasi berikut:</p>
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li><strong>Nama:</strong> {formData.name}</li>
+                  <li><strong>Region:</strong> {formatRegion(formData.region)}</li>
+                  <li><strong>Ukuran:</strong> {selectedSize ? `${selectedSize.vcpus} vCPU, ${formatMemory(selectedSize.memory)} RAM, ${selectedSize.disk} GB SSD` : '-'}</li>
+                  <li><strong>Image:</strong> {selectedImage ? formatImage(selectedImage.slug || selectedImage.name) : '-'}</li>
+                </ul>
+                <p className="mt-4">Lanjutkan pembuatan droplet?</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmCreate}>Ya, Buat Droplet</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
