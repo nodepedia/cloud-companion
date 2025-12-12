@@ -33,6 +33,7 @@ const App = () => (
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/droplets" element={<AdminDroplets />} />
+          <Route path="/admin/droplets/create" element={<CreateDroplet role="admin" />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/api-keys" element={<ApiKeys />} />
           <Route path="/admin/invite-keys" element={<InviteKeys />} />
@@ -41,7 +42,7 @@ const App = () => (
           {/* User Routes */}
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/dashboard/droplets" element={<UserDroplets />} />
-          <Route path="/dashboard/droplets/create" element={<CreateDroplet />} />
+          <Route path="/dashboard/droplets/create" element={<CreateDroplet role="user" />} />
           <Route path="/dashboard/settings" element={<Settings role="user" />} />
           
             {/* Catch-all */}
