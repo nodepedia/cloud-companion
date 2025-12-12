@@ -73,6 +73,9 @@ interface InviteKey {
   used_by: string | null;
   used_at: string | null;
   created_at: string;
+  preset_max_droplets: number;
+  preset_allowed_sizes: string[];
+  preset_auto_destroy_days: number;
 }
 
 const AVAILABLE_SIZES = [
@@ -101,6 +104,15 @@ const AdminUsers = () => {
   });
   const [savingLimits, setSavingLimits] = useState(false);
   const [newKeyMaxUses, setNewKeyMaxUses] = useState(1);
+  const [showCreateKeyDialog, setShowCreateKeyDialog] = useState(false);
+  const [newKeyForm, setNewKeyForm] = useState({
+    customKey: "",
+    useRandomKey: true,
+    maxUses: 1,
+    maxDroplets: 3,
+    allowedSizes: AVAILABLE_SIZES.map(s => s.slug),
+    autoDestroyDays: 0,
+  });
 
   const fetchUsers = async () => {
     const { data: profiles, error: profilesError } = await supabase
@@ -215,22 +227,44 @@ const AdminUsers = () => {
 
   const createInviteKey = async () => {
     setIsCreatingKey(true);
-    const newKey = generateKey();
+    
+    let keyToUse = newKeyForm.customKey.trim().toUpperCase();
+    if (newKeyForm.useRandomKey || !keyToUse) {
+      keyToUse = generateKey();
+    }
+    
     const { data: userData } = await supabase.auth.getUser();
 
     const { error } = await supabase
       .from('invite_keys')
       .insert({
-        key: newKey,
+        key: keyToUse,
         created_by: userData.user?.id,
-        max_uses: newKeyMaxUses,
-      });
+        max_uses: newKeyForm.maxUses,
+        preset_max_droplets: newKeyForm.maxDroplets,
+        preset_allowed_sizes: newKeyForm.allowedSizes,
+        preset_auto_destroy_days: newKeyForm.autoDestroyDays,
+      } as any);
 
     if (error) {
-      toast({ title: "Error", description: "Gagal membuat invite key", variant: "destructive" });
+      if (error.code === '23505') {
+        toast({ title: "Error", description: "Invite key sudah ada, gunakan key lain", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Gagal membuat invite key", variant: "destructive" });
+      }
     } else {
       toast({ title: "Berhasil", description: "Invite key baru berhasil dibuat" });
       await fetchInviteKeys();
+      setShowCreateKeyDialog(false);
+      // Reset form
+      setNewKeyForm({
+        customKey: "",
+        useRandomKey: true,
+        maxUses: 1,
+        maxDroplets: 3,
+        allowedSizes: AVAILABLE_SIZES.map(s => s.slug),
+        autoDestroyDays: 0,
+      });
     }
     setIsCreatingKey(false);
   };
@@ -475,22 +509,10 @@ const AdminUsers = () => {
               <h2 className="text-lg font-semibold">Invite Keys</h2>
               <p className="text-sm text-muted-foreground">Kelola invite key untuk registrasi user baru</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Select value={String(newKeyMaxUses)} onValueChange={(v) => setNewKeyMaxUses(Number(v))}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 5, 10, 25, 50, 100].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}x pakai</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={createInviteKey} disabled={isCreatingKey} size="sm">
-                {isCreatingKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Buat Key
-              </Button>
-            </div>
+            <Button onClick={() => setShowCreateKeyDialog(true)} size="sm">
+              <Plus className="w-4 h-4 mr-1" />
+              Buat Key
+            </Button>
           </div>
 
           <Card>
@@ -505,6 +527,7 @@ const AdminUsers = () => {
                     <TableRow>
                       <TableHead>Key</TableHead>
                       <TableHead>Penggunaan</TableHead>
+                      <TableHead>Preset Limit</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Dibuat</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
@@ -522,6 +545,12 @@ const AdminUsers = () => {
                           <span className="text-sm">
                             {key.current_uses} / {key.max_uses}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs space-y-0.5">
+                            <p>Max: {(key as any).preset_max_droplets || 3} droplet</p>
+                            <p>Destroy: {(key as any).preset_auto_destroy_days || 0} hari</p>
+                          </div>
                         </TableCell>
                         <TableCell>
                           {key.current_uses >= key.max_uses ? (
@@ -629,6 +658,121 @@ const AdminUsers = () => {
             <Button onClick={saveLimits} disabled={savingLimits} className="w-full">
               {savingLimits && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Simpan Limitasi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Invite Key Dialog */}
+      <Dialog open={showCreateKeyDialog} onOpenChange={setShowCreateKeyDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Buat Invite Key Baru</DialogTitle>
+            <DialogDescription>Atur invite key dan limitasi untuk user yang mendaftar</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Key Input */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Invite Key</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="useRandomKey"
+                    checked={newKeyForm.useRandomKey}
+                    onCheckedChange={(checked) => setNewKeyForm({ ...newKeyForm, useRandomKey: !!checked })}
+                  />
+                  <label htmlFor="useRandomKey" className="text-sm cursor-pointer">Generate acak</label>
+                </div>
+              </div>
+              {!newKeyForm.useRandomKey && (
+                <Input
+                  placeholder="Masukkan invite key custom..."
+                  value={newKeyForm.customKey}
+                  onChange={(e) => setNewKeyForm({ ...newKeyForm, customKey: e.target.value.toUpperCase() })}
+                  className="font-mono"
+                />
+              )}
+              {newKeyForm.useRandomKey && (
+                <p className="text-sm text-muted-foreground">Key akan di-generate secara acak saat dibuat</p>
+              )}
+            </div>
+
+            {/* Max Uses */}
+            <div className="space-y-2">
+              <Label>Jumlah Penggunaan</Label>
+              <Select value={String(newKeyForm.maxUses)} onValueChange={(v) => setNewKeyForm({ ...newKeyForm, maxUses: Number(v) })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 5, 10, 25, 50, 100].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}x pakai</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Preset Max Droplets */}
+            <div className="space-y-2">
+              <Label>Maksimal Droplet</Label>
+              <Select value={String(newKeyForm.maxDroplets)} onValueChange={(v) => setNewKeyForm({ ...newKeyForm, maxDroplets: Number(v) })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 5, 10, 15, 20].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} droplet</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Preset Allowed Sizes */}
+            <div className="space-y-2">
+              <Label>Spesifikasi yang Diizinkan</Label>
+              <div className="space-y-2 max-h-36 overflow-y-auto border rounded-md p-3">
+                {AVAILABLE_SIZES.map((size) => (
+                  <div key={size.slug} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`new-${size.slug}`}
+                      checked={newKeyForm.allowedSizes.includes(size.slug)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setNewKeyForm({ ...newKeyForm, allowedSizes: [...newKeyForm.allowedSizes, size.slug] });
+                        } else {
+                          setNewKeyForm({ ...newKeyForm, allowedSizes: newKeyForm.allowedSizes.filter(s => s !== size.slug) });
+                        }
+                      }}
+                    />
+                    <label htmlFor={`new-${size.slug}`} className="text-sm cursor-pointer">{size.label}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Preset Auto Destroy */}
+            <div className="space-y-2">
+              <Label>Auto Destroy Droplet</Label>
+              <Select value={String(newKeyForm.autoDestroyDays)} onValueChange={(v) => setNewKeyForm({ ...newKeyForm, autoDestroyDays: Number(v) })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Tidak ada (permanen)</SelectItem>
+                  <SelectItem value="1">1 hari</SelectItem>
+                  <SelectItem value="2">2 hari</SelectItem>
+                  <SelectItem value="3">3 hari</SelectItem>
+                  <SelectItem value="7">7 hari</SelectItem>
+                  <SelectItem value="14">14 hari</SelectItem>
+                  <SelectItem value="30">30 hari</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Droplet user akan otomatis dihapus setelah waktu yang ditentukan</p>
+            </div>
+
+            <Button onClick={createInviteKey} disabled={isCreatingKey} className="w-full">
+              {isCreatingKey && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Buat Invite Key
             </Button>
           </div>
         </DialogContent>

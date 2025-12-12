@@ -137,17 +137,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error('Format email tidak valid') };
       }
 
-      // Check if invite key is valid
+      // Check if invite key is valid and get preset limits
       const { data: keyData, error: keyError } = await supabase
         .from('invite_keys')
-        .select('id')
+        .select('id, preset_max_droplets, preset_allowed_sizes, preset_auto_destroy_days, current_uses, max_uses')
         .eq('key', inviteKey)
         .eq('is_active', true)
-        .is('used_by', null)
         .maybeSingle();
 
       if (keyError || !keyData) {
         return { error: new Error('Invite key tidak valid atau sudah digunakan') };
+      }
+
+      // Check if key still has uses left
+      const keyInfo = keyData as any;
+      if (keyInfo.current_uses >= keyInfo.max_uses) {
+        return { error: new Error('Invite key sudah mencapai batas penggunaan') };
       }
 
       // Check if username is already taken
@@ -178,12 +183,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: signUpError };
       }
 
-      // Mark invite key as used
+      // Mark invite key as used and apply preset limits
       if (signUpData.user) {
-        await supabase.rpc('use_invite_key', {
-          _key: inviteKey,
-          _user_id: signUpData.user.id,
-        });
+        // Update invite key usage count
+        await supabase
+          .from('invite_keys')
+          .update({ 
+            current_uses: keyInfo.current_uses + 1,
+            used_by: signUpData.user.id,
+            used_at: new Date().toISOString(),
+          } as any)
+          .eq('id', keyInfo.id);
+
+        // Create user limits based on invite key presets
+        await supabase
+          .from('user_limits')
+          .insert({
+            user_id: signUpData.user.id,
+            max_droplets: keyInfo.preset_max_droplets || 3,
+            allowed_sizes: keyInfo.preset_allowed_sizes || ['s-1vcpu-512mb-10gb', 's-1vcpu-1gb', 's-1vcpu-2gb', 's-2vcpu-2gb', 's-2vcpu-4gb', 's-4vcpu-8gb', 's-8vcpu-16gb'],
+            auto_destroy_days: keyInfo.preset_auto_destroy_days || 0,
+          } as any);
       }
 
       return { error: null };
