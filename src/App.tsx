@@ -14,6 +14,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import UserDashboard from "./pages/user/UserDashboard";
 import UserDroplets from "./pages/user/UserDroplets";
 import CreateDroplet from "./pages/user/CreateDroplet";
+import Settings from "./pages/user/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,11 +36,13 @@ const App = () => (
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/api-keys" element={<ApiKeys />} />
           <Route path="/admin/invite-keys" element={<InviteKeys />} />
+          <Route path="/admin/settings" element={<Settings role="admin" />} />
           
           {/* User Routes */}
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/dashboard/droplets" element={<UserDroplets />} />
           <Route path="/dashboard/droplets/create" element={<CreateDroplet />} />
+          <Route path="/dashboard/settings" element={<Settings role="user" />} />
           
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
