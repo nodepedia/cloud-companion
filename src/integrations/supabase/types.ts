@@ -195,6 +195,7 @@ export type Database = {
       }
       tutorials: {
         Row: {
+          category: string
           created_at: string
           id: string
           title: string
@@ -202,6 +203,7 @@ export type Database = {
           youtube_url: string
         }
         Insert: {
+          category?: string
           created_at?: string
           id?: string
           title: string
@@ -209,6 +211,7 @@ export type Database = {
           youtube_url: string
         }
         Update: {
+          category?: string
           created_at?: string
           id?: string
           title?: string
