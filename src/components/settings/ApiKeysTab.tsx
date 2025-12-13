@@ -407,17 +407,19 @@ const ApiKeysTab = () => {
                   {/* Balance Info */}
                   {apiKey.last_balance && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t">
-                      <div className="p-3 rounded-lg bg-accent/50">
+                      <div className={`p-3 rounded-lg ${parseFloat(apiKey.last_balance.account_balance) < 0 ? 'bg-success/10' : 'bg-accent/50'}`}>
                         <div className="flex items-center gap-2 mb-1">
-                          <Wallet className="w-4 h-4 text-primary" />
-                          <p className="text-xs text-muted-foreground">Saldo Akun</p>
+                          <Wallet className={`w-4 h-4 ${parseFloat(apiKey.last_balance.account_balance) < 0 ? 'text-success' : 'text-primary'}`} />
+                          <p className="text-xs text-muted-foreground">
+                            {parseFloat(apiKey.last_balance.account_balance) < 0 ? 'Kredit Tersedia' : 'Tagihan'}
+                          </p>
                         </div>
-                        <p className="text-lg font-bold text-foreground">
+                        <p className={`text-lg font-bold ${parseFloat(apiKey.last_balance.account_balance) < 0 ? 'text-success' : 'text-foreground'}`}>
                           {formatCurrency(apiKey.last_balance.account_balance)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {parseFloat(apiKey.last_balance.account_balance) < 0 ? 'Kredit' : 'Tagihan'}
-                        </p>
+                        {parseFloat(apiKey.last_balance.account_balance) < 0 && (
+                          <p className="text-xs text-success">GitHub Student Pack / Promo</p>
+                        )}
                       </div>
                       <div className="p-3 rounded-lg bg-accent/50">
                         <p className="text-xs text-muted-foreground mb-1">Penggunaan Bulan Ini</p>
