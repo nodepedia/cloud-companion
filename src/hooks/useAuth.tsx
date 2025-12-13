@@ -185,14 +185,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Apply invite key usage and preset limits using RPC (security definer)
       if (signUpData.user) {
-        const { error: applyError } = await (supabase as any).rpc('apply_invite_limits', {
+        const { data: applyResult, error: applyError } = await supabase.rpc('apply_invite_limits', {
           _key: inviteKey,
           _user_id: signUpData.user.id,
         });
 
         if (applyError) {
           console.error('Failed to apply invite limits:', applyError);
-          return { error: new Error('Gagal menerapkan limit dari invite key. Hubungi admin.') };
+          // Don't fail the signup, just log the error - user can still use defaults
+        } else if (applyResult === false) {
+          console.warn('Invite key limits not applied - key may be invalid or exhausted');
         }
       }
 

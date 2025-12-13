@@ -220,7 +220,7 @@ export type Database = {
     Functions: {
       apply_invite_limits: {
         Args: { _key: string; _user_id: string }
-        Returns: undefined
+        Returns: boolean
       }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       get_user_role: {
