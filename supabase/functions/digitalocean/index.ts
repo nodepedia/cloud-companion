@@ -40,6 +40,12 @@ serve(async (req) => {
   }
 
   try {
+    // Check if DigitalOcean API key is configured
+    if (!DIGITALOCEAN_API_KEY) {
+      console.error('DIGITALOCEAN_API_KEY is not configured');
+      throw new Error('DigitalOcean API key not configured. Please contact admin.');
+    }
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Missing authorization header');
@@ -51,7 +57,8 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      throw new Error('Unauthorized');
+      console.error('Auth error:', authError);
+      throw new Error('Session expired or invalid. Please login again.');
     }
 
     const { action, ...params } = await req.json();
