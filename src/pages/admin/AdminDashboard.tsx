@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,61 +10,102 @@ import {
   ArrowUpRight,
   CheckCircle,
   AlertCircle,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { id } from "date-fns/locale";
+
+interface DropletWithUser extends Droplet {
+  profiles?: {
+    username: string;
+    email: string;
+  };
+}
 
 const AdminDashboard = () => {
-  const stats = [
-    { label: "Total Droplet", value: "24", icon: Server, change: "+3 minggu ini" },
-    { label: "User Aktif", value: "12", icon: Users, change: "+2 minggu ini" },
-    { label: "API Key", value: "2", icon: Key, change: "Aktif" },
-    { label: "Uptime", value: "99.9%", icon: Activity, change: "30 hari terakhir" },
-  ];
+  const [droplets, setDroplets] = useState<DropletWithUser[]>([]);
+  const [userCount, setUserCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const { adminListDroplets } = useDigitalOcean();
 
-  const recentDroplets = [
-    { id: 1, name: "web-server-01", user: "John Doe", status: "running", region: "Singapore", created: "2 jam lalu" },
-    { id: 2, name: "database-prod", user: "Jane Smith", status: "running", region: "New York", created: "5 jam lalu" },
-    { id: 3, name: "dev-environment", user: "Mike Wilson", status: "stopped", region: "Amsterdam", created: "1 hari lalu" },
-    { id: 4, name: "test-server", user: "Sarah Lee", status: "creating", region: "London", created: "Baru saja" },
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load droplets
+        const dropletsData = await adminListDroplets();
+        setDroplets(dropletsData as DropletWithUser[]);
+
+        // Load user count
+        const { count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        setUserCount(count || 0);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const runningCount = droplets.filter(d => d.status === 'active').length;
+
+  const stats = [
+    { label: "Total Droplet", value: loading ? "-" : droplets.length.toString(), icon: Server, change: `${runningCount} aktif` },
+    { label: "User Terdaftar", value: loading ? "-" : userCount.toString(), icon: Users, change: "Total" },
+    { label: "API Key", value: "1", icon: Key, change: "Aktif" },
+    { label: "Uptime", value: "99.9%", icon: Activity, change: "30 hari terakhir" },
   ];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "running":
+      case "active":
         return <CheckCircle className="w-4 h-4 text-success" />;
-      case "stopped":
+      case "off":
         return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
-      case "creating":
+      case "new":
         return <Clock className="w-4 h-4 text-warning" />;
       default:
-        return null;
+        return <Clock className="w-4 h-4 text-warning" />;
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "running":
+      case "active":
         return "text-success";
-      case "stopped":
+      case "off":
         return "text-muted-foreground";
-      case "creating":
+      case "new":
         return "text-warning";
       default:
-        return "";
+        return "text-warning";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "running":
+      case "active":
         return "Berjalan";
-      case "stopped":
+      case "off":
         return "Berhenti";
-      case "creating":
+      case "new":
         return "Membuat";
       default:
         return status;
+    }
+  };
+
+  const formatCreatedAt = (date: string) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true, locale: id });
+    } catch {
+      return date;
     }
   };
 
@@ -105,7 +147,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link to="/admin/api-keys">
+                <Link to="/admin/settings">
                   Konfigurasi API Key
                   <ArrowUpRight className="w-4 h-4" />
                 </Link>
@@ -141,42 +183,54 @@ const AdminDashboard = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Nama</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">User</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Region</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Dibuat</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentDroplets.map((droplet) => (
-                    <tr key={droplet.id} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <Server className="w-4 h-4 text-primary" />
-                          <span className="font-medium">{droplet.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">{droplet.user}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(droplet.status)}
-                          <span className={`${getStatusText(droplet.status)}`}>
-                            {getStatusLabel(droplet.status)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">{droplet.region}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{droplet.created}</td>
+            {loading ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : droplets.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Belum ada droplet
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Nama</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">User</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Region</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Dibuat</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {droplets.slice(0, 5).map((droplet) => (
+                      <tr key={droplet.id} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <Server className="w-4 h-4 text-primary" />
+                            <span className="font-medium">{droplet.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">
+                          {droplet.profiles?.username || 'Unknown'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(droplet.status)}
+                            <span className={`${getStatusText(droplet.status)}`}>
+                              {getStatusLabel(droplet.status)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">{droplet.region}</td>
+                        <td className="py-3 px-4 text-muted-foreground">{formatCreatedAt(droplet.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
