@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      digitalocean_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_balance: Json | null
+          last_checked_at: string | null
+          last_error: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_balance?: Json | null
+          last_checked_at?: string | null
+          last_error?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_balance?: Json | null
+          last_checked_at?: string | null
+          last_error?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       droplets: {
         Row: {
           created_at: string
