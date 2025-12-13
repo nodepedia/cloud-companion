@@ -407,32 +407,12 @@ const ApiKeysTab = () => {
 
                   {/* Balance Info */}
                   {apiKey.last_balance && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3 border-t">
-                      {/* Credits Available */}
-                      <div className={`p-3 rounded-lg ${(apiKey.last_balance.credits_available || 0) > 0 ? 'bg-success/10' : 'bg-accent/50'}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Wallet className={`w-4 h-4 ${(apiKey.last_balance.credits_available || 0) > 0 ? 'text-success' : 'text-muted-foreground'}`} />
-                          <p className="text-xs text-muted-foreground">Kredit Tersedia</p>
-                        </div>
-                        <p className={`text-lg font-bold ${(apiKey.last_balance.credits_available || 0) > 0 ? 'text-success' : 'text-foreground'}`}>
-                          ${(apiKey.last_balance.credits_available || 0).toFixed(2)}
-                        </p>
-                        {(apiKey.last_balance.credits_available || 0) > 0 && (
-                          <p className="text-xs text-success">GitHub Student Pack / Promo</p>
-                        )}
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t">
                       {/* Current Balance/Bill */}
                       <div className="p-3 rounded-lg bg-accent/50">
                         <p className="text-xs text-muted-foreground mb-1">Tagihan Saat Ini</p>
                         <p className="text-lg font-bold text-foreground">
                           {formatCurrency(apiKey.last_balance.account_balance)}
-                        </p>
-                      </div>
-                      {/* Month to Date Usage */}
-                      <div className="p-3 rounded-lg bg-accent/50">
-                        <p className="text-xs text-muted-foreground mb-1">Penggunaan Bulan Ini</p>
-                        <p className="text-lg font-bold text-foreground">
-                          {formatCurrency(apiKey.last_balance.month_to_date_usage)}
                         </p>
                       </div>
                       {/* Last Checked */}
