@@ -29,6 +29,7 @@ interface Tutorial {
   id: string;
   title: string;
   youtube_url: string;
+  category: string;
   created_at: string;
 }
 
@@ -38,7 +39,7 @@ const AdminTutorials = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: "", youtube_url: "" });
+  const [formData, setFormData] = useState({ title: "", youtube_url: "", category: "Umum" });
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -76,7 +77,7 @@ const AdminTutorials = () => {
       if (editingId) {
         const { error } = await supabase
           .from('tutorials')
-          .update({ title: formData.title, youtube_url: formData.youtube_url })
+          .update({ title: formData.title, youtube_url: formData.youtube_url, category: formData.category })
           .eq('id', editingId);
 
         if (error) throw error;
@@ -84,13 +85,13 @@ const AdminTutorials = () => {
       } else {
         const { error } = await supabase
           .from('tutorials')
-          .insert({ title: formData.title, youtube_url: formData.youtube_url });
+          .insert({ title: formData.title, youtube_url: formData.youtube_url, category: formData.category });
 
         if (error) throw error;
         toast({ title: "Tutorial Ditambahkan" });
       }
 
-      setFormData({ title: "", youtube_url: "" });
+      setFormData({ title: "", youtube_url: "", category: "Umum" });
       setShowForm(false);
       setEditingId(null);
       loadTutorials();
@@ -106,7 +107,7 @@ const AdminTutorials = () => {
   };
 
   const handleEdit = (tutorial: Tutorial) => {
-    setFormData({ title: tutorial.title, youtube_url: tutorial.youtube_url });
+    setFormData({ title: tutorial.title, youtube_url: tutorial.youtube_url, category: tutorial.category });
     setEditingId(tutorial.id);
     setShowForm(true);
   };
@@ -149,7 +150,7 @@ const AdminTutorials = () => {
             <h1 className="text-2xl font-bold text-foreground">Kelola Tutorial</h1>
             <p className="text-muted-foreground">Tambah dan kelola video tutorial untuk user</p>
           </div>
-          <Button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ title: "", youtube_url: "" }); }}>
+          <Button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ title: "", youtube_url: "", category: "Umum" }); }}>
             <Plus className="w-4 h-4" />
             Tambah
           </Button>
@@ -163,7 +164,7 @@ const AdminTutorials = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">Judul</Label>
                     <Input
@@ -171,6 +172,17 @@ const AdminTutorials = () => {
                       placeholder="Cara membuat droplet"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                      disabled={saving}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Kategori</Label>
+                    <Input
+                      id="category"
+                      placeholder="Umum"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       required
                       disabled={saving}
                     />
@@ -236,7 +248,8 @@ const AdminTutorials = () => {
                     </div>
                   )}
                   <CardContent className="p-4">
-                    <h3 className="font-medium text-foreground mb-2 line-clamp-2">{tutorial.title}</h3>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{tutorial.category}</span>
+                    <h3 className="font-medium text-foreground mb-2 mt-1 line-clamp-2">{tutorial.title}</h3>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" asChild>
                         <a href={tutorial.youtube_url} target="_blank" rel="noopener noreferrer">

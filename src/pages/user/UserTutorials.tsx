@@ -9,12 +9,14 @@ interface Tutorial {
   id: string;
   title: string;
   youtube_url: string;
+  category: string;
   created_at: string;
 }
 
 const UserTutorials = () => {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string>("Semua");
 
   useEffect(() => {
     const loadTutorials = async () => {
@@ -22,6 +24,7 @@ const UserTutorials = () => {
         const { data, error } = await supabase
           .from('tutorials')
           .select('*')
+          .order('category', { ascending: true })
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -34,6 +37,11 @@ const UserTutorials = () => {
     };
     loadTutorials();
   }, []);
+
+  const categories = ["Semua", ...Array.from(new Set(tutorials.map(t => t.category)))];
+  const filteredTutorials = activeCategory === "Semua" 
+    ? tutorials 
+    : tutorials.filter(t => t.category === activeCategory);
 
   const getYoutubeId = (url: string) => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/);
@@ -52,7 +60,7 @@ const UserTutorials = () => {
           <div className="py-8 flex justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : tutorials.length === 0 ? (
+        ) : filteredTutorials.length === 0 && tutorials.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <PlayCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
@@ -63,8 +71,23 @@ const UserTutorials = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tutorials.map((tutorial) => {
+          <div className="space-y-4">
+            {/* Category Tabs */}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <Button
+                  key={cat}
+                  variant={activeCategory === cat ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveCategory(cat)}
+                >
+                  {cat}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTutorials.map((tutorial) => {
               const videoId = getYoutubeId(tutorial.youtube_url);
               return (
                 <Card key={tutorial.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
@@ -87,7 +110,8 @@ const UserTutorials = () => {
                     )}
                   </a>
                   <CardContent className="p-4">
-                    <h3 className="font-medium text-foreground mb-3 line-clamp-2">{tutorial.title}</h3>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{tutorial.category}</span>
+                    <h3 className="font-medium text-foreground mb-3 mt-1 line-clamp-2">{tutorial.title}</h3>
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <a href={tutorial.youtube_url} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="w-4 h-4" />
@@ -98,6 +122,7 @@ const UserTutorials = () => {
                 </Card>
               );
             })}
+            </div>
           </div>
         )}
       </div>
