@@ -168,13 +168,17 @@ serve(async (req) => {
         const balanceResult = await doRequest('/customers/my/balance', apiKey);
         
         // Get credits from billing history
-        const billingResult = await doRequest('/customers/my/billing_history?per_page=50', apiKey);
+        const billingResult = await doRequest('/customers/my/billing_history?per_page=200', apiKey);
         let totalCredits = 0;
         if (billingResult.data?.billing_history) {
           for (const entry of billingResult.data.billing_history) {
-            if (entry.type === 'Credit' || entry.type === 'credit') {
-              // Credits are stored as negative amounts typically
-              totalCredits += Math.abs(parseFloat(entry.amount || '0'));
+            const entryType = (entry.type || '').toString().toLowerCase();
+            if (entryType === 'credit' || entryType === 'promotion' || entryType === 'promo') {
+              // Credits are usually stored as negative amounts
+              const amount = parseFloat(entry.amount || '0');
+              if (!Number.isNaN(amount)) {
+                totalCredits += Math.abs(amount);
+              }
             }
           }
         }
