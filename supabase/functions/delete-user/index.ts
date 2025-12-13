@@ -74,7 +74,13 @@ serve(async (req) => {
       });
     }
 
-    // Delete user from auth.users (this will cascade to profiles due to foreign key)
+    // Delete related data in public schema first
+    await supabaseAdmin.from('droplets').delete().eq('user_id', userId);
+    await supabaseAdmin.from('user_limits').delete().eq('user_id', userId);
+    await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
+    await supabaseAdmin.from('profiles').delete().eq('id', userId);
+
+    // Then delete user from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
