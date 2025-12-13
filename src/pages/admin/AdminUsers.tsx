@@ -336,36 +336,30 @@ const AdminUsers = () => {
     setIsDeletingUser(true);
 
     try {
-      // Delete user's droplets first
-      const { error: dropletsError } = await supabase
-        .from('droplets')
-        .delete()
-        .eq('user_id', selectedUser.id);
-
-      if (dropletsError) {
-        console.error('Error deleting droplets:', dropletsError);
+      // Get current session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Session not found");
       }
 
-      // Delete user limits
-      await supabase
-        .from('user_limits')
-        .delete()
-        .eq('user_id', selectedUser.id);
+      // Call edge function to delete user from auth.users
+      const response = await fetch(
+        `https://hmxhuemjueznudjigozo.supabase.co/functions/v1/delete-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ userId: selectedUser.id }),
+        }
+      );
 
-      // Delete user role
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', selectedUser.id);
+      const result = await response.json();
 
-      // Delete profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', selectedUser.id);
-
-      if (profileError) {
-        throw profileError;
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete user");
       }
 
       toast({ title: "Berhasil", description: "User berhasil dihapus" });
