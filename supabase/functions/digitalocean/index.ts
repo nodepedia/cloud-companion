@@ -166,6 +166,23 @@ serve(async (req) => {
 
         // Get balance
         const balanceResult = await doRequest('/customers/my/balance', apiKey);
+        
+        // Get credits from billing history
+        const billingResult = await doRequest('/customers/my/billing_history?per_page=50', apiKey);
+        let totalCredits = 0;
+        if (billingResult.data?.billing_history) {
+          for (const entry of billingResult.data.billing_history) {
+            if (entry.type === 'Credit' || entry.type === 'credit') {
+              // Credits are stored as negative amounts typically
+              totalCredits += Math.abs(parseFloat(entry.amount || '0'));
+            }
+          }
+        }
+
+        const balanceWithCredits = {
+          ...balanceResult.data,
+          credits_available: totalCredits,
+        };
 
         const { data: newKey, error } = await supabase
           .from('digitalocean_api_keys')
@@ -173,7 +190,7 @@ serve(async (req) => {
             name,
             api_key: apiKey,
             is_active: true,
-            last_balance: balanceResult.data || null,
+            last_balance: balanceWithCredits,
             last_checked_at: new Date().toISOString(),
           })
           .select()
@@ -298,17 +315,33 @@ serve(async (req) => {
           throw new Error(balanceResult.error);
         }
 
+        // Get credits from billing history
+        const billingResult = await doRequest('/customers/my/billing_history?per_page=50', keyData.api_key);
+        let totalCredits = 0;
+        if (billingResult.data?.billing_history) {
+          for (const entry of billingResult.data.billing_history) {
+            if (entry.type === 'Credit' || entry.type === 'credit') {
+              totalCredits += Math.abs(parseFloat(entry.amount || '0'));
+            }
+          }
+        }
+
+        const balanceWithCredits = {
+          ...balanceResult.data,
+          credits_available: totalCredits,
+        };
+
         // Update with balance
         await supabase
           .from('digitalocean_api_keys')
           .update({
-            last_balance: balanceResult.data,
+            last_balance: balanceWithCredits,
             last_checked_at: new Date().toISOString(),
             last_error: null,
           })
           .eq('id', keyId);
 
-        result = balanceResult.data;
+        result = balanceWithCredits;
         break;
       }
 
