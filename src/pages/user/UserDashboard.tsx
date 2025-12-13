@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,55 +9,59 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react";
+import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 
 const UserDashboard = () => {
-  const stats = [
-    { label: "Droplet Saya", value: "2", icon: Server },
-    { label: "Berjalan", value: "1", icon: CheckCircle, color: "text-success" },
-    { label: "Berhenti", value: "1", icon: AlertCircle, color: "text-muted-foreground" },
-  ];
+  const [droplets, setDroplets] = useState<Droplet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { listDroplets } = useDigitalOcean();
 
-  const droplets = [
-    {
-      id: "1",
-      name: "my-web-server",
-      status: "running",
-      region: "Singapore",
-      size: "1 vCPU, 1GB RAM",
-      ip: "143.198.xxx.xxx",
-    },
-    {
-      id: "2",
-      name: "dev-environment",
-      status: "stopped",
-      region: "Amsterdam",
-      size: "1 vCPU, 2GB RAM",
-      ip: "178.62.xxx.xxx",
-    },
+  useEffect(() => {
+    const loadDroplets = async () => {
+      try {
+        const data = await listDroplets();
+        setDroplets(data);
+      } catch (error) {
+        console.error('Failed to load droplets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDroplets();
+  }, []);
+
+  const runningCount = droplets.filter(d => d.status === 'active').length;
+  const stoppedCount = droplets.filter(d => d.status === 'off').length;
+
+  const stats = [
+    { label: "Droplet Saya", value: droplets.length.toString(), icon: Server },
+    { label: "Berjalan", value: runningCount.toString(), icon: CheckCircle, color: "text-success" },
+    { label: "Berhenti", value: stoppedCount.toString(), icon: AlertCircle, color: "text-muted-foreground" },
   ];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "running":
+      case "active":
         return <CheckCircle className="w-4 h-4 text-success" />;
-      case "stopped":
+      case "off":
         return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
-      case "creating":
+      case "new":
         return <Clock className="w-4 h-4 text-warning" />;
       default:
-        return null;
+        return <Clock className="w-4 h-4 text-warning" />;
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "running":
+      case "active":
         return "Berjalan";
-      case "stopped":
+      case "off":
         return "Berhenti";
-      case "creating":
+      case "new":
         return "Membuat";
       default:
         return status;
@@ -90,7 +95,7 @@ const UserDashboard = () => {
                     <stat.icon className={`w-5 h-5 ${stat.color || "text-primary"}`} />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-2xl font-bold">{loading ? "-" : stat.value}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
                   </div>
                 </div>
@@ -136,7 +141,11 @@ const UserDashboard = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            {droplets.length === 0 ? (
+            {loading ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : droplets.length === 0 ? (
               <div className="py-8 text-center">
                 <Server className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">Belum Ada Droplet</h3>
@@ -152,7 +161,7 @@ const UserDashboard = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {droplets.map((droplet) => (
+                {droplets.slice(0, 5).map((droplet) => (
                   <div
                     key={droplet.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors"
@@ -175,7 +184,7 @@ const UserDashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-sm text-foreground">{droplet.ip}</p>
+                      <p className="font-mono text-sm text-foreground">{droplet.ip_address || '-'}</p>
                     </div>
                   </div>
                 ))}
