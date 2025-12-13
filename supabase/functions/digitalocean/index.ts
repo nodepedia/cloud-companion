@@ -67,6 +67,23 @@ serve(async (req) => {
     let result;
 
     switch (action) {
+      case 'get-account-balance': {
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        if (roleData?.role !== 'admin') {
+          throw new Error('Unauthorized - Admin only');
+        }
+
+        const data = await doRequest('/customers/my/balance');
+        result = data;
+        break;
+      }
+
       case 'get-regions': {
         const data = await doRequest('/regions');
         result = data.regions.filter((r: any) => r.available);
