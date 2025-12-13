@@ -218,6 +218,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_invite_limits: {
+        Args: { _key: string; _user_id: string }
+        Returns: undefined
+      }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
