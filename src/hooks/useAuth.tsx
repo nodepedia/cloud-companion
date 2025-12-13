@@ -183,27 +183,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: signUpError };
       }
 
-      // Mark invite key as used and apply preset limits
+      // Apply invite key usage and preset limits using RPC (security definer)
       if (signUpData.user) {
-        // Update invite key usage count
-        await supabase
-          .from('invite_keys')
-          .update({ 
-            current_uses: keyInfo.current_uses + 1,
-            used_by: signUpData.user.id,
-            used_at: new Date().toISOString(),
-          } as any)
-          .eq('id', keyInfo.id);
+        const { error: applyError } = await (supabase as any).rpc('apply_invite_limits', {
+          _key: inviteKey,
+          _user_id: signUpData.user.id,
+        });
 
-        // Create user limits based on invite key presets
-        await supabase
-          .from('user_limits')
-          .insert({
-            user_id: signUpData.user.id,
-            max_droplets: keyInfo.preset_max_droplets || 3,
-            allowed_sizes: keyInfo.preset_allowed_sizes || ['s-1vcpu-512mb-10gb', 's-1vcpu-1gb', 's-1vcpu-2gb', 's-2vcpu-2gb', 's-2vcpu-4gb', 's-4vcpu-8gb', 's-8vcpu-16gb'],
-            auto_destroy_days: keyInfo.preset_auto_destroy_days || 0,
-          } as any);
+        if (applyError) {
+          console.error('Failed to apply invite limits:', applyError);
+          return { error: new Error('Gagal menerapkan limit dari invite key. Hubungi admin.') };
+        }
       }
 
       return { error: null };
