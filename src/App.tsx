@@ -9,8 +9,10 @@ import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminDroplets from "./pages/admin/AdminDroplets";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminTutorials from "./pages/admin/AdminTutorials";
 import UserDashboard from "./pages/user/UserDashboard";
 import UserDroplets from "./pages/user/UserDroplets";
+import UserTutorials from "./pages/user/UserTutorials";
 import CreateDroplet from "./pages/user/CreateDroplet";
 import Settings from "./pages/user/Settings";
 import NotFound from "./pages/NotFound";
@@ -33,12 +35,14 @@ const App = () => (
           <Route path="/admin/droplets" element={<AdminDroplets />} />
           <Route path="/admin/droplets/create" element={<CreateDroplet role="admin" />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/tutorials" element={<AdminTutorials />} />
           <Route path="/admin/settings" element={<Settings role="admin" />} />
           
           {/* User Routes */}
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/dashboard/droplets" element={<UserDroplets />} />
           <Route path="/dashboard/droplets/create" element={<CreateDroplet role="user" />} />
+          <Route path="/dashboard/tutorials" element={<UserTutorials />} />
           <Route path="/dashboard/settings" element={<Settings role="user" />} />
           
             {/* Catch-all */}

@@ -193,6 +193,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tutorials: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          youtube_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          youtube_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
       user_limits: {
         Row: {
           allowed_sizes: string[]

@@ -8,7 +8,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  PlayCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,12 +38,14 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/admin/droplets", icon: Server, label: "Semua Droplet" },
     { to: "/admin/users", icon: Users, label: "User" },
+    { to: "/admin/tutorials", icon: PlayCircle, label: "Tutorial" },
     { to: "/admin/settings", icon: Settings, label: "Setting" },
   ];
 
   const userLinks = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/dashboard/droplets", icon: Server, label: "Droplet Saya" },
+    { to: "/dashboard/tutorials", icon: PlayCircle, label: "Tutorial" },
     { to: "/dashboard/settings", icon: Settings, label: "Setting" },
   ];
 
