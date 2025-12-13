@@ -208,11 +208,11 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
   // Use user limits if available, otherwise use defaults
   const allowedSizes = userLimits?.allowed_sizes || defaultAllowedSizes;
   
-  // Filter only allowed Regular CPU sizes based on user limits
+  // Filter sizes available in region, show all but mark disallowed ones
   const availableSizes = sizes.filter(s => {
-    const isAllowed = allowedSizes.includes(s.slug);
     const isInRegion = !formData.region || s.regions.includes(formData.region);
-    return isAllowed && isInRegion;
+    // Only filter by region, show all sizes but disable ones not allowed
+    return isInRegion && defaultAllowedSizes.includes(s.slug);
   });
 
   // Check if size is allowed for current user
