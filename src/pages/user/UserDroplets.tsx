@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { 
   Server, 
   Plus,
   MoreVertical,
-  Power,
   RefreshCw,
   Trash2,
   CheckCircle,
@@ -15,7 +15,8 @@ import {
   Clock,
   MapPin,
   Copy,
-  Loader2
+  Loader2,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 import DropletIPCountdown from "@/components/DropletIPCountdown";
+import FirewallDialog from "@/components/admin/FirewallDialog";
 import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
 
 const UserDroplets = () => {
@@ -46,6 +48,19 @@ const UserDroplets = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
+  const [powerDialog, setPowerDialog] = useState<{ open: boolean; droplet: Droplet | null; action: 'power_on' | 'power_off' | null }>({
+    open: false,
+    droplet: null,
+    action: null,
+  });
+  const [rebootDialog, setRebootDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
+  const [firewallDialog, setFirewallDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
     open: false,
     droplet: null,
   });
@@ -107,11 +122,48 @@ const UserDroplets = () => {
       setDeleteDialog({ open: true, droplet });
       return;
     }
+    
+    if (action === 'power_on' || action === 'power_off') {
+      setPowerDialog({ open: true, droplet, action });
+      return;
+    }
+    
+    if (action === 'reboot') {
+      setRebootDialog({ open: true, droplet });
+      return;
+    }
 
     setActionLoading(droplet.id);
     try {
       await dropletAction(droplet.id, action);
-      // Refresh after action
+      setTimeout(loadDroplets, 2000);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmPower = async () => {
+    if (!powerDialog.droplet || !powerDialog.action) return;
+    
+    setActionLoading(powerDialog.droplet.id);
+    setPowerDialog({ open: false, droplet: null, action: null });
+    
+    try {
+      await dropletAction(powerDialog.droplet.id, powerDialog.action);
+      setTimeout(loadDroplets, 2000);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmReboot = async () => {
+    if (!rebootDialog.droplet) return;
+    
+    setActionLoading(rebootDialog.droplet.id);
+    setRebootDialog({ open: false, droplet: null });
+    
+    try {
+      await dropletAction(rebootDialog.droplet.id, 'reboot');
       setTimeout(loadDroplets, 2000);
     } finally {
       setActionLoading(null);
@@ -204,40 +256,70 @@ const UserDroplets = () => {
                         </div>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={actionLoading === droplet.id}>
+                    
+                    {/* Power Toggle, Reboot, and Actions */}
+                    <div className="flex items-center gap-3">
+                      {/* Power Toggle */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Power</span>
+                        <Switch
+                          checked={droplet.status === 'active'}
+                          onCheckedChange={() => 
+                            handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')
+                          }
+                          disabled={actionLoading === droplet.id || droplet.status === 'new'}
+                        />
+                      </div>
+                      
+                      {/* Reboot Button */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Reboot</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleAction(droplet, 'reboot')}
+                          disabled={actionLoading === droplet.id || droplet.status !== 'active'}
+                        >
                           {actionLoading === droplet.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <MoreVertical className="w-4 h-4" />
+                            <RefreshCw className="w-4 h-4" />
                           )}
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {droplet.ip_address && (
-                          <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip_address!)}>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Salin IP
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')}>
-                          <Power className="w-4 h-4 mr-2" />
-                          {droplet.status === "active" ? "Matikan" : "Nyalakan"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction(droplet, 'reboot')}>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reboot
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleAction(droplet, 'delete')}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Hapus
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      </div>
+                      
+                      {/* More Actions Menu */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Menu</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionLoading === droplet.id}>
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {droplet.ip_address && (
+                              <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip_address!)}>
+                                <Copy className="w-4 h-4 mr-2" />
+                                Salin IP
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => setFirewallDialog({ open: true, droplet })}>
+                              <Shield className="w-4 h-4 mr-2" />
+                              Firewall
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleAction(droplet, 'delete')}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm">
@@ -300,6 +382,56 @@ const UserDroplets = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Power Confirmation Dialog */}
+      <AlertDialog open={powerDialog.open} onOpenChange={(open) => setPowerDialog({ open, droplet: null, action: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {powerDialog.action === 'power_on' ? 'Nyalakan' : 'Matikan'} Droplet?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin {powerDialog.action === 'power_on' ? 'menyalakan' : 'mematikan'} droplet <strong>{powerDialog.droplet?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPower}>
+              Ya, {powerDialog.action === 'power_on' ? 'Nyalakan' : 'Matikan'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reboot Confirmation Dialog */}
+      <AlertDialog open={rebootDialog.open} onOpenChange={(open) => setRebootDialog({ open, droplet: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reboot Droplet?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin me-reboot droplet <strong>{rebootDialog.droplet?.name}</strong>? 
+              Semua proses yang berjalan akan dihentikan sementara.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReboot}>
+              Ya, Reboot
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Firewall Dialog */}
+      {firewallDialog.droplet && (
+        <FirewallDialog
+          open={firewallDialog.open}
+          onOpenChange={(open) => setFirewallDialog({ open, droplet: open ? firewallDialog.droplet : null })}
+          dropletId={firewallDialog.droplet.id}
+          dropletName={firewallDialog.droplet.name}
+          digitaloceanId={firewallDialog.droplet.digitalocean_id}
+        />
+      )}
     </DashboardLayout>
   );
 };
