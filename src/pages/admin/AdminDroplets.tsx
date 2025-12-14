@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,29 +15,12 @@ import {
   Server, 
   Search,
   Plus,
-  MoreVertical, 
-  RefreshCw, 
-  Trash2,
   CheckCircle,
   AlertCircle,
   Clock,
   MapPin,
   Loader2,
-  Copy,
-  Shield
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +34,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 import DropletIPCountdown from "@/components/DropletIPCountdown";
+import DropletControls from "@/components/droplet/DropletControls";
 import FirewallDialog from "@/components/admin/FirewallDialog";
+import ResizeDialog from "@/components/droplet/ResizeDialog";
 import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
 
 const AdminDroplets = () => {
@@ -79,6 +63,10 @@ const AdminDroplets = () => {
     droplet: null,
   });
   const [firewallDialog, setFirewallDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
+  const [resizeDialog, setResizeDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
     open: false,
     droplet: null,
   });
@@ -325,68 +313,16 @@ const AdminDroplets = () => {
                     </div>
                     
                     {/* Power Toggle, Reboot, and Actions */}
-                    <div className="flex items-center gap-3">
-                      {/* Power Toggle */}
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground font-medium">Power</span>
-                        <Switch
-                          checked={droplet.status === 'active'}
-                          onCheckedChange={() => 
-                            handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')
-                          }
-                          disabled={actionLoading === droplet.id || droplet.status === 'new'}
-                        />
-                      </div>
-                      
-                      {/* Reboot Button */}
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground font-medium">Reboot</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleAction(droplet, 'reboot')}
-                          disabled={actionLoading === droplet.id || droplet.status !== 'active'}
-                        >
-                          {actionLoading === droplet.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      
-                      {/* More Actions Menu */}
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground font-medium">Menu</span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionLoading === droplet.id}>
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {droplet.ip_address && (
-                              <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip_address!)}>
-                                <Copy className="w-4 h-4 mr-2" />
-                                Salin IP
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => setFirewallDialog({ open: true, droplet })}>
-                              <Shield className="w-4 h-4 mr-2" />
-                              Firewall
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleAction(droplet, 'delete')}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
+                    <DropletControls
+                      droplet={droplet}
+                      actionLoading={actionLoading}
+                      onPowerAction={(d, action) => handleAction(d, action)}
+                      onReboot={(d) => handleAction(d, 'reboot')}
+                      onDelete={(d) => handleAction(d, 'delete')}
+                      onCopyIP={handleCopyIP}
+                      onFirewall={(d) => setFirewallDialog({ open: true, droplet: d })}
+                      onResize={(d) => setResizeDialog({ open: true, droplet: d })}
+                    />
                   </div>
 
                   <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm">
@@ -487,6 +423,17 @@ const AdminDroplets = () => {
           dropletId={firewallDialog.droplet.id}
           dropletName={firewallDialog.droplet.name}
           digitaloceanId={firewallDialog.droplet.digitalocean_id}
+        />
+      )}
+
+      {/* Resize Dialog */}
+      {resizeDialog.droplet && (
+        <ResizeDialog
+          open={resizeDialog.open}
+          onOpenChange={(open) => setResizeDialog({ open, droplet: open ? resizeDialog.droplet : null })}
+          droplet={resizeDialog.droplet}
+          onSuccess={loadDroplets}
+          isAdmin={true}
         />
       )}
     </DashboardLayout>

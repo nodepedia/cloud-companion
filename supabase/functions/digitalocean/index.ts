@@ -754,6 +754,92 @@ serve(async (req) => {
         break;
       }
 
+      // ==================== RESIZE DROPLET ====================
+      case 'resize-droplet': {
+        const { dropletId, size, disk } = params;
+        
+        const { data: droplet, error } = await supabase
+          .from('droplets')
+          .select('*')
+          .eq('id', dropletId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error || !droplet) {
+          throw new Error('Droplet not found');
+        }
+
+        if (droplet.status === 'active') {
+          throw new Error('Droplet must be powered off to resize');
+        }
+
+        const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}/actions`, 'POST', {
+          type: 'resize',
+          size: size,
+          disk: disk || false,
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        // Update size in database
+        await supabase
+          .from('droplets')
+          .update({ size: size })
+          .eq('id', dropletId);
+
+        result = { success: true, action: response.data.action };
+        break;
+      }
+
+      case 'admin-resize-droplet': {
+        const { dropletId, size, disk } = params;
+        
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        if (roleData?.role !== 'admin') {
+          throw new Error('Unauthorized - Admin only');
+        }
+
+        const { data: droplet, error } = await supabase
+          .from('droplets')
+          .select('*')
+          .eq('id', dropletId)
+          .single();
+
+        if (error || !droplet) {
+          throw new Error('Droplet not found');
+        }
+
+        if (droplet.status === 'active') {
+          throw new Error('Droplet must be powered off to resize');
+        }
+
+        const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}/actions`, 'POST', {
+          type: 'resize',
+          size: size,
+          disk: disk || false,
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        // Update size in database
+        await supabase
+          .from('droplets')
+          .update({ size: size })
+          .eq('id', dropletId);
+
+        result = { success: true, action: response.data.action };
+        break;
+      }
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
