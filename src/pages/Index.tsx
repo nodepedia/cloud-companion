@@ -135,14 +135,14 @@ const Index = () => {
             {features.map((feature, index) => (
               <Card 
                 key={feature.title}
-                className="group hover:border-primary/50 transition-colors animate-fade-up"
+                className="group hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 animate-fade-up cursor-pointer"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors">
-                    <feature.icon className="w-6 h-6 text-primary" />
+                  <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
+                    <feature.icon className="w-6 h-6 text-primary group-hover:text-primary/80 transition-colors" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
                     {feature.title}
                   </h3>
                   <p className="text-muted-foreground">
