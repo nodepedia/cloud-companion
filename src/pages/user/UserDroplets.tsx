@@ -15,7 +15,8 @@ import {
   Clock,
   MapPin,
   Copy,
-  Loader2
+  Loader2,
+  Terminal
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 import DropletIPCountdown from "@/components/DropletIPCountdown";
+import DropletConsoleDialog from "@/components/DropletConsoleDialog";
 import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
 
 const UserDroplets = () => {
@@ -46,6 +48,10 @@ const UserDroplets = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
+  const [consoleDialog, setConsoleDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
     open: false,
     droplet: null,
   });
@@ -221,6 +227,10 @@ const UserDroplets = () => {
                             Salin IP
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => setConsoleDialog({ open: true, droplet })}>
+                          <Terminal className="w-4 h-4 mr-2" />
+                          Console
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')}>
                           <Power className="w-4 h-4 mr-2" />
                           {droplet.status === "active" ? "Matikan" : "Nyalakan"}
@@ -300,6 +310,17 @@ const UserDroplets = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Console Dialog */}
+      {consoleDialog.droplet && (
+        <DropletConsoleDialog
+          open={consoleDialog.open}
+          onOpenChange={(open) => setConsoleDialog({ open, droplet: open ? consoleDialog.droplet : null })}
+          dropletId={consoleDialog.droplet.id}
+          dropletName={consoleDialog.droplet.name}
+          dropletStatus={consoleDialog.droplet.status}
+        />
+      )}
     </DashboardLayout>
   );
 };
