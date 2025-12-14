@@ -175,6 +175,7 @@ export type Database = {
           custom_domain: string | null
           favicon_url: string | null
           id: string
+          server_ip: string | null
           updated_at: string
         }
         Insert: {
@@ -182,6 +183,7 @@ export type Database = {
           custom_domain?: string | null
           favicon_url?: string | null
           id?: string
+          server_ip?: string | null
           updated_at?: string
         }
         Update: {
@@ -189,6 +191,7 @@ export type Database = {
           custom_domain?: string | null
           favicon_url?: string | null
           id?: string
+          server_ip?: string | null
           updated_at?: string
         }
         Relationships: []
