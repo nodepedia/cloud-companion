@@ -25,12 +25,12 @@ const Navbar = () => {
             <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
-            <Link to="/#features" className="text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
               Fitur
-            </Link>
-            <Link to="/#about" className="text-muted-foreground hover:text-foreground transition-colors">
+            </a>
+            <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors">
               Tentang
-            </Link>
+            </a>
           </div>
 
           {/* Auth Buttons */}
@@ -55,12 +55,12 @@ const Navbar = () => {
               <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
                 Beranda
               </Link>
-              <Link to="/#features" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
+              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
                 Fitur
-              </Link>
-              <Link to="/#about" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
+              </a>
+              <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
                 Tentang
-              </Link>
+              </a>
               {!isAuthPage && <div className="flex flex-col gap-2 pt-2 border-t">
                   <Button variant="ghost" asChild className="justify-start">
                     <Link to="/auth" onClick={() => setIsMenuOpen(false)}>Masuk</Link>
