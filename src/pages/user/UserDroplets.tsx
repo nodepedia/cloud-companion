@@ -319,6 +319,8 @@ const UserDroplets = () => {
           dropletId={consoleDialog.droplet.id}
           dropletName={consoleDialog.droplet.name}
           dropletStatus={consoleDialog.droplet.status}
+          ipAddress={consoleDialog.droplet.ip_address}
+          digitaloceanId={consoleDialog.droplet.digitalocean_id}
         />
       )}
     </DashboardLayout>
