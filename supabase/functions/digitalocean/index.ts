@@ -644,6 +644,116 @@ serve(async (req) => {
         break;
       }
 
+      // ==================== FIREWALL MANAGEMENT ====================
+      case 'list-firewalls': {
+        const response = await doRequestWithFailover(supabase, '/firewalls');
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        result = response.data.firewalls || [];
+        break;
+      }
+
+      case 'create-firewall': {
+        const { name, dropletIds, inboundRules, outboundRules } = params;
+        
+        if (!name) {
+          throw new Error('Firewall name is required');
+        }
+
+        const response = await doRequestWithFailover(supabase, '/firewalls', 'POST', {
+          name,
+          droplet_ids: dropletIds || [],
+          inbound_rules: inboundRules || [],
+          outbound_rules: outboundRules || [],
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        result = response.data.firewall;
+        break;
+      }
+
+      case 'assign-firewall': {
+        const { firewallId, dropletIds } = params;
+        
+        if (!firewallId || !dropletIds) {
+          throw new Error('Firewall ID and droplet IDs are required');
+        }
+
+        const response = await doRequestWithFailover(supabase, `/firewalls/${firewallId}/droplets`, 'POST', {
+          droplet_ids: dropletIds,
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        result = { success: true };
+        break;
+      }
+
+      case 'unassign-firewall': {
+        const { firewallId, dropletIds } = params;
+        
+        if (!firewallId || !dropletIds) {
+          throw new Error('Firewall ID and droplet IDs are required');
+        }
+
+        const response = await doRequestWithFailover(supabase, `/firewalls/${firewallId}/droplets`, 'DELETE', {
+          droplet_ids: dropletIds,
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        result = { success: true };
+        break;
+      }
+
+      case 'add-firewall-rules': {
+        const { firewallId, inboundRules, outboundRules } = params;
+        
+        if (!firewallId) {
+          throw new Error('Firewall ID is required');
+        }
+
+        const response = await doRequestWithFailover(supabase, `/firewalls/${firewallId}/rules`, 'POST', {
+          inbound_rules: inboundRules || [],
+          outbound_rules: outboundRules || [],
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        result = { success: true };
+        break;
+      }
+
+      case 'remove-firewall-rules': {
+        const { firewallId, inboundRules, outboundRules } = params;
+        
+        if (!firewallId) {
+          throw new Error('Firewall ID is required');
+        }
+
+        const response = await doRequestWithFailover(supabase, `/firewalls/${firewallId}/rules`, 'DELETE', {
+          inbound_rules: inboundRules || [],
+          outbound_rules: outboundRules || [],
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        result = { success: true };
+        break;
+      }
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

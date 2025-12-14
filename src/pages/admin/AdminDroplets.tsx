@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,6 @@ import {
   Search,
   Plus,
   MoreVertical, 
-  Power, 
   RefreshCw, 
   Trash2,
   CheckCircle,
@@ -24,7 +24,8 @@ import {
   Clock,
   MapPin,
   Loader2,
-  Copy
+  Copy,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +33,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +52,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useDigitalOcean, Droplet } from "@/hooks/useDigitalOcean";
 import DropletIPCountdown from "@/components/DropletIPCountdown";
+import FirewallDialog from "@/components/admin/FirewallDialog";
 import { formatRegion, formatSize, formatImage } from "@/lib/dropletFormatters";
 
 const AdminDroplets = () => {
@@ -58,6 +66,10 @@ const AdminDroplets = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
+  const [firewallDialog, setFirewallDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
     open: false,
     droplet: null,
   });
@@ -264,40 +276,77 @@ const AdminDroplets = () => {
                         </div>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={actionLoading === droplet.id}>
-                          {actionLoading === droplet.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <MoreVertical className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {droplet.ip_address && (
-                          <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip_address!)}>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Salin IP
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')}>
-                          <Power className="w-4 h-4 mr-2" />
-                          {droplet.status === "active" ? "Matikan" : "Nyalakan"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction(droplet, 'reboot')}>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reboot
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleAction(droplet, 'delete')}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Hapus
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    
+                    {/* Power Toggle, Reboot, and Actions */}
+                    <TooltipProvider>
+                      <div className="flex items-center gap-2">
+                        {/* Power Toggle */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center">
+                              <Switch
+                                checked={droplet.status === 'active'}
+                                onCheckedChange={() => 
+                                  handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')
+                                }
+                                disabled={actionLoading === droplet.id || droplet.status === 'new'}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {droplet.status === 'active' ? 'Matikan' : 'Nyalakan'}
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        {/* Reboot Button */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleAction(droplet, 'reboot')}
+                              disabled={actionLoading === droplet.id || droplet.status !== 'active'}
+                            >
+                              {actionLoading === droplet.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reboot</TooltipContent>
+                        </Tooltip>
+                        
+                        {/* More Actions Menu */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionLoading === droplet.id}>
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {droplet.ip_address && (
+                              <DropdownMenuItem onClick={() => handleCopyIP(droplet.ip_address!)}>
+                                <Copy className="w-4 h-4 mr-2" />
+                                Salin IP
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => setFirewallDialog({ open: true, droplet })}>
+                              <Shield className="w-4 h-4 mr-2" />
+                              Firewall
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleAction(droplet, 'delete')}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TooltipProvider>
                   </div>
 
                   <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm">
@@ -350,6 +399,17 @@ const AdminDroplets = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Firewall Dialog */}
+      {firewallDialog.droplet && (
+        <FirewallDialog
+          open={firewallDialog.open}
+          onOpenChange={(open) => setFirewallDialog({ open, droplet: open ? firewallDialog.droplet : null })}
+          dropletId={firewallDialog.droplet.id}
+          dropletName={firewallDialog.droplet.name}
+          digitaloceanId={firewallDialog.droplet.digitalocean_id}
+        />
+      )}
     </DashboardLayout>
   );
 };
