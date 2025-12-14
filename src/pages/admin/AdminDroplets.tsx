@@ -69,6 +69,15 @@ const AdminDroplets = () => {
     open: false,
     droplet: null,
   });
+  const [powerDialog, setPowerDialog] = useState<{ open: boolean; droplet: Droplet | null; action: 'power_on' | 'power_off' | null }>({
+    open: false,
+    droplet: null,
+    action: null,
+  });
+  const [rebootDialog, setRebootDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
+    open: false,
+    droplet: null,
+  });
   const [firewallDialog, setFirewallDialog] = useState<{ open: boolean; droplet: Droplet | null }>({
     open: false,
     droplet: null,
@@ -142,10 +151,48 @@ const AdminDroplets = () => {
       setDeleteDialog({ open: true, droplet });
       return;
     }
+    
+    if (action === 'power_on' || action === 'power_off') {
+      setPowerDialog({ open: true, droplet, action });
+      return;
+    }
+    
+    if (action === 'reboot') {
+      setRebootDialog({ open: true, droplet });
+      return;
+    }
 
     setActionLoading(droplet.id);
     try {
       await adminDropletAction(droplet.id, action);
+      setTimeout(loadDroplets, 2000);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmPower = async () => {
+    if (!powerDialog.droplet || !powerDialog.action) return;
+    
+    setActionLoading(powerDialog.droplet.id);
+    setPowerDialog({ open: false, droplet: null, action: null });
+    
+    try {
+      await adminDropletAction(powerDialog.droplet.id, powerDialog.action);
+      setTimeout(loadDroplets, 2000);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmReboot = async () => {
+    if (!rebootDialog.droplet) return;
+    
+    setActionLoading(rebootDialog.droplet.id);
+    setRebootDialog({ open: false, droplet: null });
+    
+    try {
+      await adminDropletAction(rebootDialog.droplet.id, 'reboot');
       setTimeout(loadDroplets, 2000);
     } finally {
       setActionLoading(null);
@@ -395,6 +442,45 @@ const AdminDroplets = () => {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Power Confirmation Dialog */}
+      <AlertDialog open={powerDialog.open} onOpenChange={(open) => setPowerDialog({ open, droplet: null, action: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {powerDialog.action === 'power_on' ? 'Nyalakan' : 'Matikan'} Droplet?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin {powerDialog.action === 'power_on' ? 'menyalakan' : 'mematikan'} droplet <strong>{powerDialog.droplet?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPower}>
+              Ya, {powerDialog.action === 'power_on' ? 'Nyalakan' : 'Matikan'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reboot Confirmation Dialog */}
+      <AlertDialog open={rebootDialog.open} onOpenChange={(open) => setRebootDialog({ open, droplet: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reboot Droplet?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin me-reboot droplet <strong>{rebootDialog.droplet?.name}</strong>? 
+              Semua proses yang berjalan akan dihentikan sementara.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReboot}>
+              Ya, Reboot
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
