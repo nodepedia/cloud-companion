@@ -153,7 +153,14 @@ fi
 
 cd supabase/docker
 
-# Create .env file
+# Generate additional required keys
+PG_META_CRYPTO_KEY=$(openssl rand -base64 32 | tr -d '\n/+=' | head -c 32)
+SECRET_KEY_BASE=$(openssl rand -base64 64 | tr -d '\n/+=' | head -c 64)
+VAULT_ENC_KEY=$(openssl rand -base64 32 | tr -d '\n/+=' | head -c 32)
+LOGFLARE_API_KEY=$(openssl rand -base64 32 | tr -d '\n/+=' | head -c 32)
+POOLER_TENANT_ID=$(openssl rand -hex 8)
+
+# Create .env file with ALL required variables
 sudo tee .env > /dev/null << EOF
 ############
 # Secrets
@@ -184,7 +191,42 @@ KONG_HTTPS_PORT=8443
 PGRST_DB_SCHEMAS=public,storage,graphql_public
 
 ############
-# Auth
+# Auth - Email
+############
+ENABLE_EMAIL_SIGNUP=true
+ENABLE_EMAIL_AUTOCONFIRM=true
+
+############
+# Auth - Phone (disabled)
+############
+ENABLE_PHONE_SIGNUP=false
+ENABLE_PHONE_AUTOCONFIRM=false
+
+############
+# Auth - Anonymous
+############
+ENABLE_ANONYMOUS_USERS=false
+
+############
+# SMTP (disabled - using autoconfirm)
+############
+SMTP_ADMIN_EMAIL=
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_SENDER_NAME=
+
+############
+# Mailer URL Paths
+############
+MAILER_URLPATHS_INVITE=/auth/v1/verify
+MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
+MAILER_URLPATHS_RECOVERY=/auth/v1/verify
+MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
+
+############
+# Site URLs
 ############
 SITE_URL=https://$DOMAIN
 ADDITIONAL_REDIRECT_URLS=
@@ -206,9 +248,37 @@ SUPABASE_PUBLIC_URL=https://$API_SUBDOMAIN.$DOMAIN
 FUNCTIONS_VERIFY_JWT=false
 
 ############
-# Logs
+# Crypto Keys
 ############
-LOGFLARE_LOGGER_BACKEND_API_KEY=your-super-secret-and-long-logflare-key
+PG_META_CRYPTO_KEY=$PG_META_CRYPTO_KEY
+SECRET_KEY_BASE=$SECRET_KEY_BASE
+VAULT_ENC_KEY=$VAULT_ENC_KEY
+
+############
+# Logflare
+############
+LOGFLARE_LOGGER_BACKEND_API_KEY=$LOGFLARE_API_KEY
+LOGFLARE_PRIVATE_ACCESS_TOKEN=$LOGFLARE_API_KEY
+LOGFLARE_PUBLIC_ACCESS_TOKEN=$LOGFLARE_API_KEY
+
+############
+# Docker
+############
+DOCKER_SOCKET_LOCATION=/var/run/docker.sock
+
+############
+# Image Proxy
+############
+IMGPROXY_ENABLE_WEBP_DETECTION=true
+
+############
+# Pooler (Supavisor)
+############
+POOLER_PROXY_PORT_TRANSACTION=6543
+POOLER_TENANT_ID=$POOLER_TENANT_ID
+POOLER_DB_POOL_SIZE=20
+POOLER_DEFAULT_POOL_SIZE=20
+POOLER_MAX_CLIENT_CONN=100
 
 ############
 # Storage
