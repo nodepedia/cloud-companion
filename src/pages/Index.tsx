@@ -224,8 +224,8 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 border-t">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center">
-            <p className="text-sm text-muted-foreground text-center">
+          <div className="flex items-center justify-start">
+            <p className="text-sm text-muted-foreground">
               © 2025 CloudManager. Dibuat oleh BelajarNode untuk komunitas belajar.
             </p>
           </div>
