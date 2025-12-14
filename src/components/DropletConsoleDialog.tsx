@@ -7,8 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Terminal, ExternalLink, Loader2, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Terminal, ExternalLink, Copy, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DropletConsoleDialogProps {
@@ -17,68 +16,41 @@ interface DropletConsoleDialogProps {
   dropletId: string;
   dropletName: string;
   dropletStatus: string;
-  isAdmin?: boolean;
+  ipAddress?: string | null;
+  digitaloceanId?: number | null;
 }
 
 const DropletConsoleDialog = ({
   open,
   onOpenChange,
-  dropletId,
   dropletName,
   dropletStatus,
-  isAdmin = false,
+  ipAddress,
+  digitaloceanId,
 }: DropletConsoleDialogProps) => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [consoleUrl, setConsoleUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleOpenConsole = async () => {
-    if (dropletStatus !== 'active') {
-      setError('Droplet harus dalam status aktif untuk mengakses console');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const action = isAdmin ? 'admin-get-console' : 'get-console';
-      const response = await supabase.functions.invoke('digitalocean', {
-        body: { action, dropletId },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Gagal mendapatkan console URL');
-      }
-
-      if (response.data?.console_url) {
-        setConsoleUrl(response.data.console_url);
-        // Open in new window
-        window.open(response.data.console_url, '_blank', 'width=1024,height=768');
-        toast({
-          title: "Console Dibuka",
-          description: "Console web telah dibuka di tab baru",
-        });
-      } else {
-        throw new Error('Console URL tidak tersedia');
-      }
-    } catch (err: any) {
-      console.error('Console error:', err);
-      setError(err.message || 'Gagal membuka console');
+  const handleCopySSH = () => {
+    if (ipAddress) {
+      navigator.clipboard.writeText(`ssh root@${ipAddress}`);
       toast({
-        title: "Gagal Membuka Console",
-        description: err.message || 'Terjadi kesalahan',
-        variant: "destructive",
+        title: "Disalin!",
+        description: "Perintah SSH berhasil disalin ke clipboard",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleOpenInNewTab = () => {
-    if (consoleUrl) {
-      window.open(consoleUrl, '_blank', 'width=1024,height=768');
+  const handleOpenDOConsole = () => {
+    if (digitaloceanId) {
+      window.open(
+        `https://cloud.digitalocean.com/droplets/${digitaloceanId}/console`,
+        '_blank',
+        'width=1024,height=768'
+      );
+      toast({
+        title: "Console Dibuka",
+        description: "Console DigitalOcean dibuka di tab baru (membutuhkan login DO)",
+      });
     }
   };
 
@@ -88,7 +60,7 @@ const DropletConsoleDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="w-5 h-5" />
-            Web Console
+            Akses Console
           </DialogTitle>
           <DialogDescription>
             Akses terminal untuk droplet <strong>{dropletName}</strong>
@@ -105,62 +77,77 @@ const DropletConsoleDialog = ({
             </div>
           )}
 
-          {error && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
+          {!ipAddress && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning border border-warning/20">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">
+                IP Address belum tersedia. Tunggu beberapa saat.
+              </p>
             </div>
           )}
 
+          {/* SSH Access */}
           <div className="p-4 rounded-lg bg-secondary space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Terminal className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium text-foreground">Console Interaktif</p>
+                <p className="font-medium text-foreground">SSH Access</p>
                 <p className="text-sm text-muted-foreground">
-                  Akses langsung ke terminal droplet
+                  Akses via terminal lokal
                 </p>
               </div>
             </div>
 
-            <ul className="text-sm text-muted-foreground space-y-1 ml-13">
-              <li>• Login dengan kredensial root Anda</li>
-              <li>• Jalankan perintah langsung di browser</li>
-              <li>• Session berlaku selama 1 jam</li>
-            </ul>
+            {ipAddress && (
+              <div className="p-3 rounded-md bg-background border font-mono text-sm flex items-center justify-between gap-2">
+                <code>ssh root@{ipAddress}</code>
+                <Button variant="ghost" size="icon" onClick={handleCopySSH}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Gunakan password yang Anda buat saat membuat droplet
+            </p>
           </div>
 
-          <div className="flex gap-2">
-            {consoleUrl ? (
-              <Button onClick={handleOpenInNewTab} className="flex-1">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Buka Kembali Console
-              </Button>
-            ) : (
+          {/* DO Console Link */}
+          {digitaloceanId && (
+            <div className="p-4 rounded-lg bg-secondary space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <ExternalLink className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Web Console</p>
+                  <p className="text-sm text-muted-foreground">
+                    Akses via DigitalOcean Dashboard
+                  </p>
+                </div>
+              </div>
+
               <Button 
-                onClick={handleOpenConsole} 
-                disabled={loading || dropletStatus !== 'active'}
-                className="flex-1"
+                onClick={handleOpenDOConsole}
+                variant="outline"
+                className="w-full"
+                disabled={dropletStatus !== 'active'}
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Memuat...
-                  </>
-                ) : (
-                  <>
-                    <Terminal className="w-4 h-4 mr-2" />
-                    Buka Console
-                  </>
-                )}
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Buka DO Console
               </Button>
-            )}
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Tutup
-            </Button>
-          </div>
+
+              <p className="text-xs text-muted-foreground">
+                Membutuhkan login ke akun DigitalOcean
+              </p>
+            </div>
+          )}
+
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+            Tutup
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
