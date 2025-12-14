@@ -299,21 +299,50 @@ if [ "$RESTORE_DB" = "y" ] && [ -n "$SUPABASE_CLOUD_URL" ]; then
     print_header "💾 STEP 3: Restoring Database"
     
     # Wait for database to be ready
-    sleep 10
+    print_warning "Waiting for database to be ready..."
+    sleep 15
     
-    # Install PostgreSQL client
-    sudo apt install -y postgresql-client
+    # Install PostgreSQL client (matching version)
+    sudo apt install -y postgresql-client-15 2>/dev/null || sudo apt install -y postgresql-client
     
-    # Dump from cloud
-    print_warning "Dumping database from Supabase Cloud..."
-    pg_dump "$SUPABASE_CLOUD_URL" > /tmp/backup.sql
+    print_warning "Only exporting 'public' schema (excluding Supabase system schemas)..."
     
-    # Restore to local
-    print_warning "Restoring to local database..."
-    PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -p 5432 -U postgres -d postgres < /tmp/backup.sql
+    # Dump ONLY public schema from cloud (exclude auth, storage, realtime, extensions, etc.)
+    pg_dump "$SUPABASE_CLOUD_URL" \
+            --schema=public \
+            --no-owner \
+            --no-acl \
+            --no-comments \
+            --clean \
+            --if-exists \
+            > /tmp/backup.sql 2>/dev/null
     
-    rm /tmp/backup.sql
-    print_success "Database restored"
+    if [ $? -eq 0 ]; then
+        # Check backup size
+        BACKUP_SIZE=$(ls -lh /tmp/backup.sql | awk '{print $5}')
+        print_success "Public schema dumped from cloud (Size: $BACKUP_SIZE)"
+        
+        # Restore to local Supabase via docker
+        print_warning "Restoring public schema to local database..."
+        
+        # Copy backup file to container
+        sudo docker cp /tmp/backup.sql supabase-db:/tmp/backup.sql
+        
+        # Restore inside container as postgres user
+        sudo docker exec supabase-db psql -U postgres -d postgres -f /tmp/backup.sql 2>&1 | \
+            grep -v "^NOTICE:" | \
+            grep -v "does not exist, skipping" | \
+            head -30
+        
+        # Clean up
+        sudo docker exec supabase-db rm /tmp/backup.sql
+        rm /tmp/backup.sql
+        
+        print_success "Database public schema restored to local Supabase"
+    else
+        print_error "Failed to dump database from cloud"
+        print_warning "Make sure the connection URL is correct and accessible"
+    fi
 else
     print_warning "Skipping database restore"
 fi
