@@ -342,7 +342,7 @@ const CreateDroplet = ({ role = "user" }: CreateDropletProps) => {
 
   return (
     <DashboardLayout role={role}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Limit Warning */}
         {limitExceeded && (
           <Card className="border-destructive bg-destructive/10">
