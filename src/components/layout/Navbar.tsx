@@ -20,18 +20,7 @@ const Navbar = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-              Home
-            </Link>
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-              Fitur
-            </a>
-            <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors">
-              Tentang
-            </a>
-          </div>
+          {/* Auth Buttons moved to center-right */}
 
           {/* Auth Buttons */}
           {!isAuthPage && <div className="hidden md:flex items-center gap-3">
@@ -52,15 +41,6 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {isMenuOpen && <div className="md:hidden py-4 border-t animate-fade-up">
             <div className="flex flex-col gap-4">
-              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
-                Beranda
-              </Link>
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
-                Fitur
-              </a>
-              <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors px-2" onClick={() => setIsMenuOpen(false)}>
-                Tentang
-              </a>
               {!isAuthPage && <div className="flex flex-col gap-2 pt-2 border-t">
                   <Button variant="ghost" asChild className="justify-start">
                     <Link to="/auth" onClick={() => setIsMenuOpen(false)}>Masuk</Link>

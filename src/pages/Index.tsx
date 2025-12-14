@@ -12,15 +12,42 @@ import {
   ArrowRight,
   CheckCircle
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const Index = () => {
   const [scrollY, setScrollY] = useState(0);
+  const [featuresVisible, setFeaturesVisible] = useState(false);
+  const [aboutVisible, setAboutVisible] = useState(false);
+  const featuresRef = useRef<HTMLElement>(null);
+  const aboutRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: "0px 0px -50px 0px"
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.target === featuresRef.current && entry.isIntersecting) {
+          setFeaturesVisible(true);
+        }
+        if (entry.target === aboutRef.current && entry.isIntersecting) {
+          setAboutVisible(true);
+        }
+      });
+    }, observerOptions);
+
+    if (featuresRef.current) observer.observe(featuresRef.current);
+    if (aboutRef.current) observer.observe(aboutRef.current);
+
+    return () => observer.disconnect();
   }, []);
 
   const features = [
@@ -145,9 +172,17 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-16 lg:py-24">
+      <section 
+        id="features" 
+        ref={featuresRef}
+        className={`py-16 lg:py-24 transition-all duration-700 ${
+          featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        }`}
+      >
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className={`text-center mb-12 transition-all duration-700 delay-100 ${
+            featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+          }`}>
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
               Semua yang Kamu Butuhkan
             </h2>
@@ -160,8 +195,10 @@ const Index = () => {
             {features.map((feature, index) => (
               <Card 
                 key={feature.title}
-                className="group hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 animate-fade-up cursor-pointer"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className={`group hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-500 cursor-pointer ${
+                  featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                }`}
+                style={{ transitionDelay: featuresVisible ? `${(index + 2) * 100}ms` : "0ms" }}
               >
                 <CardContent className="p-6">
                   <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
@@ -181,10 +218,18 @@ const Index = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-16 lg:py-24 bg-secondary/30">
+      <section 
+        id="about" 
+        ref={aboutRef}
+        className={`py-16 lg:py-24 bg-secondary/30 transition-all duration-700 ${
+          aboutVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        }`}
+      >
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-12">
+            <div className={`text-center mb-12 transition-all duration-700 delay-100 ${
+              aboutVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+            }`}>
               <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
                 Dibuat untuk Belajar
               </h2>
@@ -193,7 +238,9 @@ const Index = () => {
               </p>
             </div>
 
-            <Card>
+            <Card className={`transition-all duration-700 delay-200 ${
+              aboutVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+            }`}>
               <CardContent className="p-8">
                 <div className="space-y-4">
                   {[
@@ -203,14 +250,22 @@ const Index = () => {
                     "Pengawasan admin untuk pembelajaran berbasis komunitas",
                     "Antarmuka sederhana yang dirancang untuk pemula",
                   ].map((item, index) => (
-                    <div key={index} className="flex items-start gap-3">
+                    <div 
+                      key={index} 
+                      className={`flex items-start gap-3 transition-all duration-500 ${
+                        aboutVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                      }`}
+                      style={{ transitionDelay: aboutVisible ? `${(index + 3) * 100}ms` : "0ms" }}
+                    >
                       <CheckCircle className="w-5 h-5 text-success mt-0.5 shrink-0" />
                       <span className="text-foreground">{item}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-8 pt-6 border-t">
+                <div className={`mt-8 pt-6 border-t transition-all duration-700 delay-700 ${
+                  aboutVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                }`}>
                   <Button variant="hero" size="lg" className="w-full" asChild>
                     <Link to="/auth?mode=register">
                       Mulai Belajar Sekarang
