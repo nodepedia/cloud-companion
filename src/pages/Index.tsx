@@ -103,11 +103,11 @@ const Index = () => {
                   {specs.map((plan) => (
                     <div 
                       key={plan.name}
-                      className="p-4 rounded-lg bg-accent/50 border border-border"
+                      className="group p-4 rounded-lg bg-accent/50 border border-border hover:border-primary/50 hover:bg-accent hover:shadow-md hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-4 h-4 text-primary" />
-                        <span className="font-medium">{plan.name}</span>
+                        <Server className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
+                        <span className="font-medium group-hover:text-primary transition-colors">{plan.name}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{plan.specs}</p>
                     </div>
