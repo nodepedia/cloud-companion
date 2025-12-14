@@ -28,7 +28,7 @@ const Index = () => {
     {
       icon: Zap,
       title: "Deploy Instan",
-      description: "Deploy server Anda dalam hitungan detik dengan infrastruktur yang teroptimasi.",
+      description: "Deploy server Anda dalam hitungan menit dengan infrastruktur yang teroptimasi.",
     },
     {
       icon: Users,
@@ -204,7 +204,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center">
             <p className="text-sm text-muted-foreground">
-              © 2024 CloudManager. Dibuat untuk komunitas belajar.
+              © 2025 CloudManager. Dibuat untuk komunitas belajar.
             </p>
           </div>
         </div>
