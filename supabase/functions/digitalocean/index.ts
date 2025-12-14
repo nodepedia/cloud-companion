@@ -10,26 +10,24 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Get active API key from database
-async function getActiveApiKey(supabase: any): Promise<{ id: string; api_key: string } | null> {
+// Get ALL active API keys from database (for failover)
+async function getAllActiveApiKeys(supabase: any): Promise<{ id: string; api_key: string }[]> {
   const { data, error } = await supabase
     .from('digitalocean_api_keys')
     .select('id, api_key')
     .eq('is_active', true)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('Error fetching API key:', error);
-    return null;
+    console.error('Error fetching API keys:', error);
+    return [];
   }
-  return data;
+  return data || [];
 }
 
 // Mark API key as failed and deactivate it
 async function markKeyAsFailed(supabase: any, keyId: string, errorMessage: string) {
-  console.log(`Deactivating API key ${keyId} due to error: ${errorMessage}`);
+  console.log(`Deactivating API key ${keyId.substring(0, 8)}... due to error: ${errorMessage}`);
   await supabase
     .from('digitalocean_api_keys')
     .update({
@@ -40,7 +38,7 @@ async function markKeyAsFailed(supabase: any, keyId: string, errorMessage: strin
     .eq('id', keyId);
 }
 
-// Make request to DigitalOcean API
+// Make request to DigitalOcean API (single key)
 async function doRequest(
   endpoint: string,
   apiKey: string,
@@ -78,6 +76,53 @@ async function doRequest(
   }
 }
 
+// Make request with automatic failover to other API keys
+async function doRequestWithFailover(
+  supabase: any,
+  endpoint: string,
+  method: string = 'GET',
+  body?: object
+): Promise<{ data: any; error?: string; usedKeyId?: string }> {
+  const activeKeys = await getAllActiveApiKeys(supabase);
+  
+  if (activeKeys.length === 0) {
+    return { data: null, error: 'No active DigitalOcean API key configured. Please add one in admin settings.' };
+  }
+
+  console.log(`Found ${activeKeys.length} active API key(s) for failover`);
+  let lastError = '';
+  
+  for (let i = 0; i < activeKeys.length; i++) {
+    const key = activeKeys[i];
+    console.log(`[${i + 1}/${activeKeys.length}] Trying API key ${key.id.substring(0, 8)}... for ${method} ${endpoint}`);
+    
+    const response = await doRequest(endpoint, key.api_key, method, body);
+    
+    if (response.error) {
+      lastError = response.error;
+      
+      if (response.isAuthError) {
+        // Auth error - mark key as failed and try next
+        console.log(`[FAILOVER] API key ${key.id.substring(0, 8)}... failed with auth error: ${response.error}. Trying next key...`);
+        await markKeyAsFailed(supabase, key.id, response.error);
+        continue; // Try next key
+      } else {
+        // Non-auth error - still return error but don't deactivate key
+        console.log(`API key ${key.id.substring(0, 8)}... failed with non-auth error: ${response.error}`);
+        return { data: null, error: response.error, usedKeyId: key.id };
+      }
+    }
+    
+    // Success!
+    console.log(`[SUCCESS] API key ${key.id.substring(0, 8)}... succeeded for ${method} ${endpoint}`);
+    return { data: response.data, usedKeyId: key.id };
+  }
+  
+  // All keys failed
+  console.log(`[FAILED] All ${activeKeys.length} API keys failed. Last error: ${lastError}`);
+  return { data: null, error: `All API keys failed. Last error: ${lastError}` };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -102,15 +147,8 @@ serve(async (req) => {
     const { action, ...params } = await req.json();
     console.log(`Action: ${action}, User: ${user.id}, Params:`, params);
 
-    // Get active API key
-    const activeKey = await getActiveApiKey(supabase);
-    
     // Actions that don't need DO API key
     const noKeyActions = ['admin-list-api-keys', 'admin-add-api-key', 'admin-update-api-key', 'admin-delete-api-key', 'admin-check-api-key-balance'];
-    
-    if (!noKeyActions.includes(action) && !activeKey) {
-      throw new Error('No active DigitalOcean API key configured. Please add one in admin settings.');
-    }
 
     let result;
 
@@ -174,7 +212,6 @@ serve(async (req) => {
           for (const entry of billingResult.data.billing_history) {
             const entryType = (entry.type || '').toString().toLowerCase();
             if (entryType === 'credit' || entryType === 'promotion' || entryType === 'promo') {
-              // Credits are usually stored as negative amounts
               const amount = parseFloat(entry.amount || '0');
               if (!Number.isNaN(amount)) {
                 totalCredits += Math.abs(amount);
@@ -349,13 +386,10 @@ serve(async (req) => {
         break;
       }
 
-      // ==================== DIGITALOCEAN API ====================
+      // ==================== DIGITALOCEAN API (WITH FAILOVER) ====================
       case 'get-regions': {
-        const response = await doRequest('/regions', activeKey!.api_key);
+        const response = await doRequestWithFailover(supabase, '/regions');
         if (response.error) {
-          if (response.isAuthError) {
-            await markKeyAsFailed(supabase, activeKey!.id, response.error);
-          }
           throw new Error(response.error);
         }
         result = response.data.regions.filter((r: any) => r.available);
@@ -363,11 +397,8 @@ serve(async (req) => {
       }
 
       case 'get-sizes': {
-        const response = await doRequest('/sizes', activeKey!.api_key);
+        const response = await doRequestWithFailover(supabase, '/sizes');
         if (response.error) {
-          if (response.isAuthError) {
-            await markKeyAsFailed(supabase, activeKey!.id, response.error);
-          }
           throw new Error(response.error);
         }
         result = response.data.sizes.filter((s: any) => s.available);
@@ -375,11 +406,8 @@ serve(async (req) => {
       }
 
       case 'get-images': {
-        const response = await doRequest('/images?type=distribution&per_page=100', activeKey!.api_key);
+        const response = await doRequestWithFailover(supabase, '/images?type=distribution&per_page=100');
         if (response.error) {
-          if (response.isAuthError) {
-            await markKeyAsFailed(supabase, activeKey!.id, response.error);
-          }
           throw new Error(response.error);
         }
         result = response.data.images;
@@ -387,11 +415,8 @@ serve(async (req) => {
       }
 
       case 'get-apps': {
-        const response = await doRequest('/images?type=application&per_page=100', activeKey!.api_key);
+        const response = await doRequestWithFailover(supabase, '/images?type=application&per_page=100');
         if (response.error) {
-          if (response.isAuthError) {
-            await markKeyAsFailed(supabase, activeKey!.id, response.error);
-          }
           throw new Error(response.error);
         }
         result = response.data.images;
@@ -405,7 +430,7 @@ serve(async (req) => {
           throw new Error('Missing required fields');
         }
 
-        const response = await doRequest('/droplets', activeKey!.api_key, 'POST', {
+        const response = await doRequestWithFailover(supabase, '/droplets', 'POST', {
           name,
           region,
           size,
@@ -414,9 +439,6 @@ serve(async (req) => {
         });
 
         if (response.error) {
-          if (response.isAuthError) {
-            await markKeyAsFailed(supabase, activeKey!.id, response.error);
-          }
           throw new Error(response.error);
         }
 
@@ -454,15 +476,12 @@ serve(async (req) => {
 
         if (error) throw error;
 
-        // Sync status with DigitalOcean
+        // Sync status with DigitalOcean using failover
         for (const droplet of droplets || []) {
           if (droplet.digitalocean_id) {
             try {
-              const response = await doRequest(`/droplets/${droplet.digitalocean_id}`, activeKey!.api_key);
+              const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}`);
               if (response.error) {
-                if (response.isAuthError) {
-                  await markKeyAsFailed(supabase, activeKey!.id, response.error);
-                }
                 continue;
               }
               
@@ -506,24 +525,18 @@ serve(async (req) => {
         }
 
         if (actionType === 'delete') {
-          const response = await doRequest(`/droplets/${droplet.digitalocean_id}`, activeKey!.api_key, 'DELETE');
+          const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}`, 'DELETE');
           if (response.error) {
-            if (response.isAuthError) {
-              await markKeyAsFailed(supabase, activeKey!.id, response.error);
-            }
             throw new Error(response.error);
           }
           
           await supabase.from('droplets').delete().eq('id', dropletId);
           result = { success: true, message: 'Droplet deleted' };
         } else {
-          const response = await doRequest(`/droplets/${droplet.digitalocean_id}/actions`, activeKey!.api_key, 'POST', {
+          const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}/actions`, 'POST', {
             type: actionType,
           });
           if (response.error) {
-            if (response.isAuthError) {
-              await markKeyAsFailed(supabase, activeKey!.id, response.error);
-            }
             throw new Error(response.error);
           }
           
@@ -553,15 +566,12 @@ serve(async (req) => {
 
         if (error) throw error;
 
-        // Sync status with DigitalOcean
+        // Sync status with DigitalOcean using failover
         for (const droplet of droplets || []) {
-          if (droplet.digitalocean_id && activeKey) {
+          if (droplet.digitalocean_id) {
             try {
-              const response = await doRequest(`/droplets/${droplet.digitalocean_id}`, activeKey.api_key);
+              const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}`);
               if (response.error) {
-                if (response.isAuthError) {
-                  await markKeyAsFailed(supabase, activeKey.id, response.error);
-                }
                 continue;
               }
               
@@ -614,24 +624,18 @@ serve(async (req) => {
         }
 
         if (actionType === 'delete') {
-          const response = await doRequest(`/droplets/${droplet.digitalocean_id}`, activeKey!.api_key, 'DELETE');
+          const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}`, 'DELETE');
           if (response.error) {
-            if (response.isAuthError) {
-              await markKeyAsFailed(supabase, activeKey!.id, response.error);
-            }
             throw new Error(response.error);
           }
           
           await supabase.from('droplets').delete().eq('id', dropletId);
           result = { success: true, message: 'Droplet deleted' };
         } else {
-          const response = await doRequest(`/droplets/${droplet.digitalocean_id}/actions`, activeKey!.api_key, 'POST', {
+          const response = await doRequestWithFailover(supabase, `/droplets/${droplet.digitalocean_id}/actions`, 'POST', {
             type: actionType,
           });
           if (response.error) {
-            if (response.isAuthError) {
-              await markKeyAsFailed(supabase, activeKey!.id, response.error);
-            }
             throw new Error(response.error);
           }
           
