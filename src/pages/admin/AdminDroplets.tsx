@@ -325,47 +325,40 @@ const AdminDroplets = () => {
                     </div>
                     
                     {/* Power Toggle, Reboot, and Actions */}
-                    <TooltipProvider>
-                      <div className="flex items-center gap-2">
-                        {/* Power Toggle */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center">
-                              <Switch
-                                checked={droplet.status === 'active'}
-                                onCheckedChange={() => 
-                                  handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')
-                                }
-                                disabled={actionLoading === droplet.id || droplet.status === 'new'}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {droplet.status === 'active' ? 'Matikan' : 'Nyalakan'}
-                          </TooltipContent>
-                        </Tooltip>
-                        
-                        {/* Reboot Button */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleAction(droplet, 'reboot')}
-                              disabled={actionLoading === droplet.id || droplet.status !== 'active'}
-                            >
-                              {actionLoading === droplet.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <RefreshCw className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Reboot</TooltipContent>
-                        </Tooltip>
-                        
-                        {/* More Actions Menu */}
+                    <div className="flex items-center gap-3">
+                      {/* Power Toggle */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Power</span>
+                        <Switch
+                          checked={droplet.status === 'active'}
+                          onCheckedChange={() => 
+                            handleAction(droplet, droplet.status === 'active' ? 'power_off' : 'power_on')
+                          }
+                          disabled={actionLoading === droplet.id || droplet.status === 'new'}
+                        />
+                      </div>
+                      
+                      {/* Reboot Button */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Reboot</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleAction(droplet, 'reboot')}
+                          disabled={actionLoading === droplet.id || droplet.status !== 'active'}
+                        >
+                          {actionLoading === droplet.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* More Actions Menu */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Menu</span>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionLoading === droplet.id}>
@@ -393,7 +386,7 @@ const AdminDroplets = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    </TooltipProvider>
+                    </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm">
