@@ -71,83 +71,208 @@ sudo git clone --depth 1 https://github.com/supabase/supabase
 cd supabase/docker
 ```
 
-### 2.2 Generate JWT Keys
+### 2.2 Penjelasan Semua Keys & Secrets
 
-Buka https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys
+Sebelum konfigurasi, pahami dulu setiap credential yang dibutuhkan:
 
-Atau gunakan script ini:
+| Key/Secret | Sumber | Penjelasan |
+|------------|--------|------------|
+| `JWT_SECRET` | 🔧 **Generate sendiri** | String random minimal 32 karakter. Digunakan untuk sign/verify JWT tokens. |
+| `ANON_KEY` | 🔧 **Generate dari JWT_SECRET** | JWT token dengan role "anon". Digunakan frontend untuk akses API publik. |
+| `SERVICE_ROLE_KEY` | 🔧 **Generate dari JWT_SECRET** | JWT token dengan role "service_role". Bypass RLS, hanya untuk backend/server. |
+| `POSTGRES_PASSWORD` | 🔧 **Generate sendiri** | Password database PostgreSQL. Buat password yang kuat. |
+| `DASHBOARD_USERNAME` | ✏️ **Tentukan sendiri** | Username untuk login ke Supabase Studio. Biasanya "admin". |
+| `DASHBOARD_PASSWORD` | 🔧 **Generate sendiri** | Password untuk login ke Supabase Studio. |
+| `SITE_URL` | ✏️ **Tentukan sendiri** | URL frontend aplikasi kamu (domain atau IP). |
+| `API_EXTERNAL_URL` | ✏️ **Tentukan sendiri** | URL API Supabase (biasanya subdomain api.). |
+| `DIGITALOCEAN_API_KEY` | 📥 **Dari DigitalOcean** | Ambil dari: DigitalOcean Dashboard → API → Generate New Token |
+
+**Legenda:**
+- 🔧 = Generate sendiri (random/script)
+- ✏️ = Tentukan sendiri (sesuai kebutuhan)
+- 📥 = Ambil dari service eksternal
+
+---
+
+### 2.3 Generate JWT Keys
+
+Ada 2 cara untuk generate JWT keys:
+
+#### Cara 1: Via Website (Recommended untuk pemula)
+
+1. Buka: https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys
+2. Masukkan JWT Secret (buat sendiri, minimal 32 karakter random)
+3. Copy ANON_KEY dan SERVICE_ROLE_KEY yang di-generate
+
+#### Cara 2: Via Command Line
 
 ```bash
+# Install Node.js jika belum ada
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
 # Install jwt-cli
-npm install -g jwt-cli
+sudo npm install -g jwt-cli
 
-# Set your JWT secret (simpan ini!)
-JWT_SECRET="your-super-secret-jwt-key-min-32-characters"
-
-# Generate ANON_KEY
-ANON_KEY=$(jwt encode --secret "$JWT_SECRET" '{"role":"anon","iss":"supabase","iat":1700000000,"exp":2000000000}')
-
-# Generate SERVICE_ROLE_KEY
-SERVICE_ROLE_KEY=$(jwt encode --secret "$JWT_SECRET" '{"role":"service_role","iss":"supabase","iat":1700000000,"exp":2000000000}')
-
+# STEP 1: Generate JWT_SECRET (random 32+ karakter)
+# Jalankan command ini untuk generate random string:
+JWT_SECRET=$(openssl rand -base64 32)
 echo "JWT_SECRET: $JWT_SECRET"
+# ⚠️ SIMPAN INI! Jangan sampai hilang!
+
+# STEP 2: Generate ANON_KEY dari JWT_SECRET
+ANON_KEY=$(jwt encode --secret "$JWT_SECRET" '{"role":"anon","iss":"supabase","iat":1700000000,"exp":2000000000}')
 echo "ANON_KEY: $ANON_KEY"
+
+# STEP 3: Generate SERVICE_ROLE_KEY dari JWT_SECRET
+SERVICE_ROLE_KEY=$(jwt encode --secret "$JWT_SECRET" '{"role":"service_role","iss":"supabase","iat":1700000000,"exp":2000000000}')
 echo "SERVICE_ROLE_KEY: $SERVICE_ROLE_KEY"
 ```
 
-### 2.3 Configure Environment
+**⚠️ PENTING:** 
+- `JWT_SECRET` adalah "master key" - ANON_KEY dan SERVICE_ROLE_KEY di-generate DARI JWT_SECRET
+- Jika JWT_SECRET berubah, semua token lama akan invalid
+- Simpan ketiga key ini di tempat aman!
+
+---
+
+### 2.4 Generate Password Lainnya
+
+```bash
+# Generate POSTGRES_PASSWORD (password database)
+POSTGRES_PASSWORD=$(openssl rand -base64 24)
+echo "POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
+
+# Generate DASHBOARD_PASSWORD (password Supabase Studio)
+DASHBOARD_PASSWORD=$(openssl rand -base64 16)
+echo "DASHBOARD_PASSWORD: $DASHBOARD_PASSWORD"
+```
+
+**Atau buat manual:** Gunakan password manager untuk generate password yang kuat.
+
+---
+
+### 2.5 Configure Environment
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Edit `.env` dengan nilai berikut:
+Edit `.env` - **setiap baris ada penjelasan sumbernya:**
 
 ```env
 ############
-# Secrets - WAJIB DIISI
+# SECRETS - Semua di-generate sendiri
 ############
-POSTGRES_PASSWORD=your-strong-postgres-password
-JWT_SECRET=your-super-secret-jwt-key-min-32-characters
-ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# 🔧 Generate: openssl rand -base64 24
+# Password untuk database PostgreSQL
+POSTGRES_PASSWORD=paste_hasil_generate_disini
+
+# 🔧 Generate: openssl rand -base64 32 (minimal 32 karakter)
+# Master key untuk sign JWT tokens
+JWT_SECRET=paste_hasil_generate_disini
+
+# 🔧 Generate dari JWT_SECRET (lihat Step 2.3)
+# Token untuk frontend (akses API publik)
+ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...paste_lengkap
+
+# 🔧 Generate dari JWT_SECRET (lihat Step 2.3)
+# Token untuk backend (bypass RLS) - JANGAN expose ke frontend!
+SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...paste_lengkap
+
+# ✏️ Tentukan sendiri - username untuk login Studio
 DASHBOARD_USERNAME=admin
-DASHBOARD_PASSWORD=your-dashboard-password
+
+# 🔧 Generate: openssl rand -base64 16
+# Password untuk login ke Supabase Studio
+DASHBOARD_PASSWORD=paste_hasil_generate_disini
 
 ############
-# Database
+# DATABASE - Biarkan default
 ############
 POSTGRES_HOST=db
 POSTGRES_DB=postgres
 POSTGRES_PORT=5432
 
 ############
-# API - Ganti dengan domain/IP kamu
+# API URLs - Sesuaikan dengan domain/IP kamu
 ############
-SITE_URL=https://yourdomain.com
-API_EXTERNAL_URL=https://api.yourdomain.com
-# Atau jika belum ada domain:
-# SITE_URL=http://YOUR_SERVER_IP:3000
-# API_EXTERNAL_URL=http://YOUR_SERVER_IP:8000
+
+# ✏️ URL frontend aplikasi
+# Contoh dengan domain: https://myapp.com
+# Contoh dengan IP: http://138.197.222.11:3001
+SITE_URL=http://YOUR_SERVER_IP:3001
+
+# ✏️ URL API Supabase (Kong gateway)
+# Contoh dengan domain: https://api.myapp.com
+# Contoh dengan IP: http://138.197.222.11:8000
+API_EXTERNAL_URL=http://YOUR_SERVER_IP:8000
 
 ############
-# Studio
+# STUDIO - Pengaturan dashboard admin
 ############
 STUDIO_DEFAULT_ORGANIZATION=My Organization
 STUDIO_DEFAULT_PROJECT=My Project
 STUDIO_PORT=3000
 
 ############
-# Kong
+# KONG API GATEWAY - Biarkan default
 ############
 KONG_HTTP_PORT=8000
 KONG_HTTPS_PORT=8443
 
 ############
-# Disable Telemetry (opsional)
+# OPTIONAL
 ############
 TELEMETRY_ENABLED=false
+```
+
+---
+
+### 2.6 Simpan Semua Credentials
+
+Buat file untuk menyimpan semua credentials:
+
+```bash
+cat > /opt/credentials.txt << EOF
+===========================================
+SUPABASE SELF-HOSTED CREDENTIALS
+Generated: $(date)
+===========================================
+
+DATABASE
+---------
+POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+
+JWT KEYS
+--------
+JWT_SECRET: $JWT_SECRET
+ANON_KEY: $ANON_KEY
+SERVICE_ROLE_KEY: $SERVICE_ROLE_KEY
+
+DASHBOARD
+---------
+DASHBOARD_USERNAME: admin
+DASHBOARD_PASSWORD: $DASHBOARD_PASSWORD
+Studio URL: http://YOUR_SERVER_IP:3000
+
+API
+---
+API URL: http://YOUR_SERVER_IP:8000
+Frontend URL: http://YOUR_SERVER_IP:3001
+
+===========================================
+⚠️ SIMPAN FILE INI DI TEMPAT AMAN!
+⚠️ JANGAN COMMIT KE GIT!
+===========================================
+EOF
+
+# Set permission agar hanya owner yang bisa baca
+chmod 600 /opt/credentials.txt
+
+echo "Credentials saved to /opt/credentials.txt"
 ```
 
 ### 2.4 Start Supabase
