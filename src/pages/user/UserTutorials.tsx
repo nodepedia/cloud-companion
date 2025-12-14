@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, ExternalLink, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { PlayCircle, ExternalLink, Loader2, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Tutorial {
@@ -17,6 +18,7 @@ const UserTutorials = () => {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("Semua");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const loadTutorials = async () => {
@@ -39,9 +41,19 @@ const UserTutorials = () => {
   }, []);
 
   const categories = ["Semua", ...Array.from(new Set(tutorials.map(t => t.category)))];
-  const filteredTutorials = activeCategory === "Semua" 
-    ? tutorials 
-    : tutorials.filter(t => t.category === activeCategory);
+  
+  const filteredTutorials = useMemo(() => {
+    let result = tutorials;
+    if (activeCategory !== "Semua") {
+      result = result.filter(t => t.category === activeCategory);
+    }
+    if (searchQuery.trim()) {
+      result = result.filter(t => 
+        t.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return result;
+  }, [tutorials, activeCategory, searchQuery]);
 
   const getYoutubeId = (url: string) => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/);
@@ -60,7 +72,7 @@ const UserTutorials = () => {
           <div className="py-8 flex justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : filteredTutorials.length === 0 && tutorials.length === 0 ? (
+        ) : tutorials.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <PlayCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
@@ -72,19 +84,42 @@ const UserTutorials = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {/* Category Tabs */}
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <Button
-                  key={cat}
-                  variant={activeCategory === cat ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {cat}
-                </Button>
-              ))}
+            {/* Search and Category Filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari tutorial..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={activeCategory === cat ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveCategory(cat)}
+                  >
+                    {cat}
+                  </Button>
+                ))}
+              </div>
             </div>
+
+            {filteredTutorials.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Search className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">Tidak Ditemukan</h3>
+                  <p className="text-muted-foreground">
+                    Tidak ada tutorial yang cocok dengan pencarian Anda
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTutorials.map((tutorial) => {
@@ -123,6 +158,7 @@ const UserTutorials = () => {
               );
             })}
             </div>
+            )}
           </div>
         )}
       </div>
