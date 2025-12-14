@@ -63,121 +63,74 @@ docker logs coolify
 
 ---
 
-## 3. Deploy Supabase Self-Hosted
+## 3. Deploy Supabase via Coolify One-Click
 
-### Opsi A: Via Coolify One-Click (Recommended)
-
-1. Di Coolify Dashboard → **Projects** → **New Project**
-2. Pilih **New Resource** → **Docker Compose**
-3. Gunakan Supabase Docker Compose dari repository resmi
-
-### Opsi B: Manual Docker Compose
-
-#### Step 1: Clone Supabase Repository
-
-```bash
-# Di server
-cd /opt
-git clone --depth 1 https://github.com/supabase/supabase
-cd supabase/docker
+### Langkah 1: Buka Coolify Dashboard
+```
+https://your-server-ip:8000
 ```
 
-#### Step 2: Generate Secrets
+### Langkah 2: Tambah Project Baru
+1. Klik **"Projects"** di sidebar
+2. Klik **"+ Add"** untuk buat project baru
+3. Beri nama project (misal: "My App")
 
+### Langkah 3: Tambah Environment
+1. Di dalam project, klik **"+ Add"** untuk tambah environment
+2. Pilih **"Production"** atau nama lain
+
+### Langkah 4: Deploy Supabase
+1. Klik **"+ New"** di environment
+2. Pilih **"Services"** → cari **"Supabase"**
+3. Klik **"Supabase"** untuk deploy
+
+### Langkah 5: Konfigurasi Supabase
+Coolify akan otomatis generate secrets, tapi kamu perlu:
+
+1. **Set Domain** (opsional tapi recommended):
+   - Klik service Supabase
+   - Masuk ke **"Domains"** tab
+   - Set domain untuk:
+     - **Kong (API)**: `api.yourdomain.com`
+     - **Studio**: `studio.yourdomain.com`
+
+2. **Catat Credentials**:
+   Setelah deploy, buka **"Environment Variables"** tab dan catat:
+   ```
+   ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+   SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+   POSTGRES_PASSWORD=your-db-password
+   JWT_SECRET=your-jwt-secret
+   ```
+
+3. **Start Service**:
+   - Klik **"Deploy"** atau **"Start"**
+   - Tunggu semua container running (biasanya 2-5 menit)
+
+### Langkah 6: Verifikasi
 ```bash
-# Generate random secrets
-JWT_SECRET=$(openssl rand -base64 32)
-ANON_KEY=$(openssl rand -base64 32)
-SERVICE_ROLE_KEY=$(openssl rand -base64 32)
-POSTGRES_PASSWORD=$(openssl rand -base64 24)
-DASHBOARD_PASSWORD=$(openssl rand -base64 16)
+# Cek semua container running
+docker ps | grep supabase
 
-# Save to file for reference
-cat > /opt/supabase-secrets.txt << EOF
-JWT_SECRET=$JWT_SECRET
-ANON_KEY=$ANON_KEY
-SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD
-EOF
-
-echo "Secrets saved to /opt/supabase-secrets.txt"
+# Akses Supabase Studio
+https://studio.yourdomain.com
+# atau
+http://your-server-ip:3000
 ```
 
-#### Step 3: Generate Proper JWT Keys
-
-```bash
-# Install jwt-cli atau gunakan script ini
-npm install -g jwt-cli
-
-# Generate ANON_KEY
-jwt encode \
-  --secret "$JWT_SECRET" \
-  '{"role":"anon","iss":"supabase","iat":1700000000,"exp":2000000000}'
-
-# Generate SERVICE_ROLE_KEY  
-jwt encode \
-  --secret "$JWT_SECRET" \
-  '{"role":"service_role","iss":"supabase","iat":1700000000,"exp":2000000000}'
+### Langkah 7: Dapatkan API URL
+Setelah deploy, URL Supabase kamu adalah:
 ```
+# API URL (untuk frontend)
+https://api.yourdomain.com
+# atau jika belum setup domain:
+http://your-server-ip:8000
 
-**Atau gunakan website**: https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys
-
-#### Step 4: Create .env File
-
-```bash
-cp .env.example .env
-nano .env
+# Studio URL (untuk manage database)
+https://studio.yourdomain.com
+# atau
+http://your-server-ip:3000
 ```
-
-Edit file `.env`:
-
-```env
-############
-# Secrets
-############
-POSTGRES_PASSWORD=your_postgres_password_here
-JWT_SECRET=your_jwt_secret_here
-ANON_KEY=your_generated_anon_key_here
-SERVICE_ROLE_KEY=your_generated_service_role_key_here
-
-############
-# Database
-############
-POSTGRES_HOST=db
-POSTGRES_DB=postgres
-POSTGRES_PORT=5432
-
-############
-# API
-############
-SITE_URL=https://your-domain.com
-API_EXTERNAL_URL=https://api.your-domain.com
-
-############
-# Studio
-############
-STUDIO_DEFAULT_ORGANIZATION=My Organization
-STUDIO_DEFAULT_PROJECT=My Project
-STUDIO_PORT=3000
-DASHBOARD_USERNAME=admin
-DASHBOARD_PASSWORD=your_dashboard_password
-
-############
-# Kong
-############
-KONG_HTTP_PORT=8000
-KONG_HTTPS_PORT=8443
-```
-
-#### Step 5: Start Supabase
-
-```bash
-# Pull images
-docker compose pull
-
-# Start services
-docker compose up -d
 
 # Check status
 docker compose ps
