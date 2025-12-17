@@ -155,11 +155,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error('Invite key sudah mencapai batas penggunaan') };
       }
 
-      // Check if username is already taken
+      // Check if username is already taken (case-insensitive)
       const { data: existingUser } = await supabase
         .from('profiles')
         .select('username')
-        .eq('username', usernameInput.toLowerCase())
+        .ilike('username', usernameInput.toLowerCase())
         .maybeSingle();
 
       if (existingUser) {
@@ -177,8 +177,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          return { error: new Error('Username sudah terdaftar') };
+        // Supabase returns "already registered" when the EMAIL already exists
+        if (signUpError.message.toLowerCase().includes('already registered')) {
+          return { error: new Error('Email sudah terdaftar. Silakan login atau gunakan email lain.') };
         }
         return { error: signUpError };
       }
