@@ -90,18 +90,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (usernameInput: string, password: string) => {
+  const signIn = async (usernameOrEmailInput: string, password: string) => {
     try {
-      // Get user's email from profiles by username using RPC function (bypasses RLS)
-      const { data: email, error: lookupError } = await supabase
-        .rpc('get_email_by_username', { _username: usernameInput });
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(usernameOrEmailInput.trim());
 
-      if (lookupError || !email) {
-        return { error: new Error('Username atau password salah') };
+      let emailToUse: string | null = null;
+
+      if (isEmail) {
+        emailToUse = usernameOrEmailInput.trim();
+      } else {
+        // Get user's email from username using RPC function (bypasses RLS)
+        const { data: email, error: lookupError } = await supabase.rpc('get_email_by_username', {
+          _username: usernameOrEmailInput,
+        });
+
+        if (lookupError || !email) {
+          return {
+            error: new Error(
+              'Username tidak ditemukan. Coba login pakai EMAIL (isi kolom ini dengan email) atau hubungi admin.'
+            ),
+          };
+        }
+
+        emailToUse = email;
       }
 
       const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailToUse,
         password,
       });
       
