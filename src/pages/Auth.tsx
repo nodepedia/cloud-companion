@@ -157,14 +157,16 @@ const Auth = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">
+                    {mode === "login" ? "Username atau Email" : "Username"}
+                  </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="username"
                       name="username"
                       type="text"
-                      placeholder="username"
+                      placeholder={mode === "login" ? "username / email" : "username"}
                       value={formData.username}
                       onChange={handleInputChange}
                       className="pl-10"
