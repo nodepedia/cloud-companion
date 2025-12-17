@@ -68,7 +68,12 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await signUp(formData.username, formData.email, formData.password, formData.inviteKey);
+      const { error, needsEmailConfirmation } = await signUp(
+        formData.username,
+        formData.email,
+        formData.password,
+        formData.inviteKey
+      );
       
       if (error) {
         toast({
@@ -82,7 +87,9 @@ const Auth = () => {
 
       toast({
         title: "Akun Berhasil Dibuat!",
-        description: "Silakan login dengan akun baru Anda",
+        description: needsEmailConfirmation
+          ? "Silakan cek email untuk verifikasi sebelum login (inbox/spam)."
+          : "Silakan login dengan akun baru Anda",
       });
       
       // Switch to login mode after successful registration
