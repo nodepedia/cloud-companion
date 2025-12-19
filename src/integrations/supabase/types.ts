@@ -175,6 +175,7 @@ export type Database = {
           custom_domain: string | null
           favicon_url: string | null
           id: string
+          server_ip: string | null
           updated_at: string
         }
         Insert: {
@@ -182,6 +183,7 @@ export type Database = {
           custom_domain?: string | null
           favicon_url?: string | null
           id?: string
+          server_ip?: string | null
           updated_at?: string
         }
         Update: {
@@ -189,6 +191,7 @@ export type Database = {
           custom_domain?: string | null
           favicon_url?: string | null
           id?: string
+          server_ip?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -285,6 +288,7 @@ export type Database = {
         Args: { _key: string; _user_id: string }
         Returns: boolean
       }
+      bootstrap_user: { Args: { _user_id: string }; Returns: undefined }
       get_email_by_username: { Args: { _username: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
