@@ -3,14 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Globe, Image, Upload, Loader2, ExternalLink, Check, Server, Copy, CheckCircle } from "lucide-react";
+import { Settings, Globe, Image, Upload, Loader2, ExternalLink, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GeneralSettings {
   favicon_url: string;
   custom_domain: string;
-  server_ip: string;
 }
 
 const GeneralSettingsTab = () => {
@@ -18,12 +17,10 @@ const GeneralSettingsTab = () => {
   const [settings, setSettings] = useState<GeneralSettings>({
     favicon_url: "",
     custom_domain: "",
-    server_ip: "",
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -46,7 +43,6 @@ const GeneralSettingsTab = () => {
         setSettings({
           favicon_url: settingsData.favicon_url || "",
           custom_domain: settingsData.custom_domain || "",
-          server_ip: settingsData.server_ip || "",
         });
         if (settingsData.favicon_url) {
           setFaviconPreview(settingsData.favicon_url);
@@ -129,7 +125,6 @@ const GeneralSettingsTab = () => {
           .update({
             favicon_url: settings.favicon_url,
             custom_domain: settings.custom_domain,
-            server_ip: settings.server_ip,
             updated_at: new Date().toISOString(),
           })
           .eq("id", (existing as any).id);
@@ -142,7 +137,6 @@ const GeneralSettingsTab = () => {
           .insert({
             favicon_url: settings.favicon_url,
             custom_domain: settings.custom_domain,
-            server_ip: settings.server_ip,
           });
 
         if (error) throw error;
@@ -163,16 +157,6 @@ const GeneralSettingsTab = () => {
     }
   };
 
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-    toast({
-      title: "Disalin",
-      description: "Teks berhasil disalin ke clipboard",
-    });
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -180,8 +164,6 @@ const GeneralSettingsTab = () => {
       </div>
     );
   }
-
-  const serverIp = settings.server_ip || "YOUR_SERVER_IP";
 
   return (
     <div className="space-y-6">
@@ -196,29 +178,6 @@ const GeneralSettingsTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Server IP Settings */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Server className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-base font-medium">Server IP Address</Label>
-            </div>
-
-            <div className="space-y-3">
-              <Input
-                type="text"
-                value={settings.server_ip}
-                onChange={(e) => setSettings(prev => ({ ...prev, server_ip: e.target.value }))}
-                placeholder="138.197.222.11"
-              />
-              <p className="text-sm text-muted-foreground">
-                IP address server tempat aplikasi di-deploy. Digunakan untuk konfigurasi DNS domain.
-              </p>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-border" />
-
           {/* Favicon Settings */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -291,140 +250,38 @@ const GeneralSettingsTab = () => {
                 placeholder="example.com"
               />
               <p className="text-sm text-muted-foreground">
-                Masukkan domain kustom Anda. Konfigurasi DNS di registrar domain Anda.
+                Masukkan domain kustom Anda. Pastikan DNS sudah dikonfigurasi dengan benar.
               </p>
 
-              {(settings.custom_domain || settings.server_ip) && (
-                <div className="p-4 rounded-lg bg-muted/50 space-y-4">
-                  <p className="text-sm font-medium">Konfigurasi DNS di Registrar Domain:</p>
-                  
-                  <div className="space-y-3">
-                    {/* A Record for root */}
-                    <div className="flex items-center justify-between p-3 rounded-md bg-background border">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <code className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">A</code>
-                          <span className="text-sm font-medium">Root Domain</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Name: <code className="px-1 bg-muted rounded">@</code> → Value: <code className="px-1 bg-muted rounded">{serverIp}</code>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(serverIp, "a-root")}
-                      >
-                        {copiedField === "a-root" ? (
-                          <CheckCircle className="w-4 h-4 text-success" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
+              {settings.custom_domain && (
+                <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+                  <p className="text-sm font-medium">Konfigurasi DNS:</p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-background text-xs">A Record</code>
+                      <span className="text-muted-foreground">→</span>
+                      <code className="px-2 py-1 rounded bg-background text-xs">@ → 185.158.133.1</code>
                     </div>
-
-                    {/* A Record for www */}
-                    <div className="flex items-center justify-between p-3 rounded-md bg-background border">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <code className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">A</code>
-                          <span className="text-sm font-medium">WWW Subdomain</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Name: <code className="px-1 bg-muted rounded">www</code> → Value: <code className="px-1 bg-muted rounded">{serverIp}</code>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(serverIp, "a-www")}
-                      >
-                        {copiedField === "a-www" ? (
-                          <CheckCircle className="w-4 h-4 text-success" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-background text-xs">A Record</code>
+                      <span className="text-muted-foreground">→</span>
+                      <code className="px-2 py-1 rounded bg-background text-xs">www → 185.158.133.1</code>
                     </div>
-
-                    {/* A Record for API */}
-                    <div className="flex items-center justify-between p-3 rounded-md bg-background border">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <code className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">A</code>
-                          <span className="text-sm font-medium">API Subdomain</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Name: <code className="px-1 bg-muted rounded">api</code> → Value: <code className="px-1 bg-muted rounded">{serverIp}</code>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(serverIp, "a-api")}
-                      >
-                        {copiedField === "a-api" ? (
-                          <CheckCircle className="w-4 h-4 text-success" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* A Record for Studio */}
-                    <div className="flex items-center justify-between p-3 rounded-md bg-background border">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <code className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">A</code>
-                          <span className="text-sm font-medium">Studio Subdomain</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Name: <code className="px-1 bg-muted rounded">studio</code> → Value: <code className="px-1 bg-muted rounded">{serverIp}</code>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(serverIp, "a-studio")}
-                      >
-                        {copiedField === "a-studio" ? (
-                          <CheckCircle className="w-4 h-4 text-success" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-background text-xs">TXT Record</code>
+                      <span className="text-muted-foreground">→</span>
+                      <code className="px-2 py-1 rounded bg-background text-xs">_lovable → lovable_verify=...</code>
                     </div>
                   </div>
-
-                  {settings.custom_domain && (
-                    <div className="pt-3 border-t border-border space-y-2">
-                      <p className="text-sm font-medium">URL Setelah Konfigurasi:</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                        <div className="p-2 rounded bg-background border">
-                          <span className="text-muted-foreground">Frontend:</span>
-                          <code className="ml-2 text-primary">https://{settings.custom_domain}</code>
-                        </div>
-                        <div className="p-2 rounded bg-background border">
-                          <span className="text-muted-foreground">API:</span>
-                          <code className="ml-2 text-primary">https://api.{settings.custom_domain}</code>
-                        </div>
-                        <div className="p-2 rounded bg-background border">
-                          <span className="text-muted-foreground">Studio:</span>
-                          <code className="ml-2 text-primary">https://studio.{settings.custom_domain}</code>
-                        </div>
-                        <div className="p-2 rounded bg-background border">
-                          <span className="text-muted-foreground">WWW:</span>
-                          <code className="ml-2 text-primary">https://www.{settings.custom_domain}</code>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-3 border-t border-border">
-                    <p className="text-xs text-muted-foreground">
-                      💡 Setelah menambahkan DNS records, jalankan <code className="px-1 bg-muted rounded">sudo certbot --nginx</code> di server untuk mendapatkan SSL certificate.
-                    </p>
-                  </div>
+                  <a 
+                    href="https://docs.lovable.dev/features/custom-domain" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    Lihat dokumentasi lengkap
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               )}
             </div>

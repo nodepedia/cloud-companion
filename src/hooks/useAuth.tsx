@@ -11,12 +11,7 @@ interface AuthContextType {
   username: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (
-    username: string,
-    email: string,
-    password: string,
-    inviteKey: string
-  ) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean }>;
+  signUp: (username: string, email: string, password: string, inviteKey: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -90,45 +85,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (usernameOrEmailInput: string, password: string) => {
+  const signIn = async (usernameInput: string, password: string) => {
     try {
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(usernameOrEmailInput.trim());
+      // Get user's email from profiles by username using RPC function (bypasses RLS)
+      const { data: email, error: lookupError } = await supabase
+        .rpc('get_email_by_username', { _username: usernameInput });
 
-      let emailToUse: string | null = null;
-
-      if (isEmail) {
-        emailToUse = usernameOrEmailInput.trim();
-      } else {
-        // Get user's email from username using RPC function (bypasses RLS)
-        const { data: email, error: lookupError } = await supabase.rpc('get_email_by_username', {
-          _username: usernameOrEmailInput,
-        });
-
-        if (lookupError || !email) {
-          return {
-            error: new Error(
-              'Username tidak ditemukan. Coba login pakai EMAIL (isi kolom ini dengan email) atau hubungi admin.'
-            ),
-          };
-        }
-
-        emailToUse = email;
+      if (lookupError || !email) {
+        return { error: new Error('Username atau password salah') };
       }
 
       const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
+        email,
         password,
       });
       
       if (error) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes('email not confirmed')) {
-          return { error: new Error('Email belum dikonfirmasi. Cek inbox/spam untuk link verifikasi (atau matikan “Confirm email” saat testing).') };
-        }
-        if (msg.includes('invalid login credentials')) {
-          return { error: new Error('Username atau password salah') };
-        }
-        return { error: new Error(error.message) };
+        return { error: new Error('Username atau password salah') };
       }
 
       // Check if user is suspended
@@ -182,24 +155,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error('Invite key sudah mencapai batas penggunaan') };
       }
 
-      // Check if username is already taken (case-insensitive)
+      // Check if username is already taken
       const { data: existingUser } = await supabase
         .from('profiles')
         .select('username')
-        .ilike('username', usernameInput.toLowerCase())
+        .eq('username', usernameInput.toLowerCase())
         .maybeSingle();
 
       if (existingUser) {
         return { error: new Error('Username sudah digunakan') };
       }
 
-      const redirectUrl = `${window.location.origin}/auth?mode=login`;
-
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             username: usernameInput.toLowerCase(),
           },
@@ -207,14 +177,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (signUpError) {
-        // Supabase returns "already registered" when the EMAIL already exists
-        if (signUpError.message.toLowerCase().includes('already registered')) {
-          return { error: new Error('Email sudah terdaftar. Silakan login atau gunakan email lain.') };
+        if (signUpError.message.includes('already registered')) {
+          return { error: new Error('Username sudah terdaftar') };
         }
         return { error: signUpError };
       }
-
-      const needsEmailConfirmation = !signUpData.session;
 
       // Apply invite key usage and preset limits using RPC (security definer)
       if (signUpData.user) {
@@ -231,7 +198,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      return { error: null, needsEmailConfirmation };
+      return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
@@ -244,6 +211,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRole(null);
     setUsername(null);
   };
+
   return (
     <AuthContext.Provider value={{
       user,

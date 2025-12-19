@@ -68,12 +68,7 @@ const Auth = () => {
         return;
       }
 
-      const { error, needsEmailConfirmation } = await signUp(
-        formData.username,
-        formData.email,
-        formData.password,
-        formData.inviteKey
-      );
+      const { error } = await signUp(formData.username, formData.email, formData.password, formData.inviteKey);
       
       if (error) {
         toast({
@@ -87,9 +82,7 @@ const Auth = () => {
 
       toast({
         title: "Akun Berhasil Dibuat!",
-        description: needsEmailConfirmation
-          ? "Silakan cek email untuk verifikasi sebelum login (inbox/spam)."
-          : "Silakan login dengan akun baru Anda",
+        description: "Silakan login dengan akun baru Anda",
       });
       
       // Switch to login mode after successful registration
@@ -157,16 +150,14 @@ const Auth = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">
-                    {mode === "login" ? "Username atau Email" : "Username"}
-                  </Label>
+                  <Label htmlFor="username">Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="username"
                       name="username"
                       type="text"
-                      placeholder={mode === "login" ? "username / email" : "username"}
+                      placeholder="username"
                       value={formData.username}
                       onChange={handleInputChange}
                       className="pl-10"
